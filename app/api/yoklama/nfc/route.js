@@ -6,74 +6,115 @@ import Yoklama from "@/models/Yoklama";
 export async function POST(request) {
   try {
     await dbConnect();
-    const { nfcKartId } = await request.json();
 
-    if (!nfcKartId) {
+    let body;
+    try {
+      body = await request.json();
+    } catch (e) {
       return NextResponse.json(
-        { success: false, error: "NFC Kart ID okunamadı!" },
-        { status: 400 },
+        { success: false, error: "Geçersiz istek gövdesi (JSON hatası)!" },
+        { status: 200 }, // 400 yerine 200 dönüp mesajı ekrana basıyoruz
       );
     }
 
-    // 1. Kart ID'sine ait aktif öğrenciyi bul
+    const { cardId } = body || {};
+
+    if (!cardId || String(cardId).trim() === "") {
+      return NextResponse.json(
+        { success: false, error: "Kart ID okunurken boş veri algılandı!" },
+        { status: 200 },
+      );
+    }
+
+    // 1. Kart ID'yi tüm gizli/özel karakterlerden (Enter, Tab vb.) temizle
+    const hamCardId = String(cardId).trim();
+    // Yalnızca harf ve rakamları tut (özel okuyucu eklerini temizle)
+    const temizCardId = hamCardId.replace(/[^a-zA-Z0-9]/g, "");
+    // Başındaki sıfırları temizlenmiş alternatif
+    const sifirsizCardId = temizCardId.replace(/^0+/, "");
+
+    console.log("📡 Okunan Kart Numaraları:", {
+      hamCardId,
+      temizCardId,
+      sifirsizCardId,
+    });
+
+    // 2. 🔍 ESNEK ARAMA (Tüm olası kart alanlarında ve formatlarında)
     const ogrenci = await Ogrenci.findOne({
-      nfcKartId: nfcKartId.trim(),
-      durum: "aktif",
+      $or: [
+        { cardId: hamCardId },
+        { nfcId: hamCardId },
+        { nfcKartId: hamCardId },
+        { cardId: temizCardId },
+        { nfcId: temizCardId },
+        { nfcKartId: temizCardId },
+        { cardId: sifirsizCardId },
+        { nfcId: sifirsizCardId },
+        { nfcKartId: sifirsizCardId },
+        { cardId: { $regex: new RegExp(`^${temizCardId}$`, "i") } },
+        { nfcId: { $regex: new RegExp(`^${temizCardId}$`, "i") } },
+        { nfcKartId: { $regex: new RegExp(`^${temizCardId}$`, "i") } },
+      ],
     });
 
     if (!ogrenci) {
       return NextResponse.json(
         {
           success: false,
-          error: "Bu NFC kartına tanımlı aktif öğrenci bulunamadı!",
+          error: `Okunan Kart ID (${temizCardId || hamCardId}) sistemde hiçbir öğrenci ile eşleşmedi! Lütfen Öğrenci Düzenle ekranından bu kart numarasını öğrenciye tanımlayınız.`,
+          okunanKart: temizCardId || hamCardId,
         },
-        { status: 404 },
+        { status: 200 },
       );
     }
 
-    // 2. MÜKERRER KAYIT KONTROLÜ (Bugün zaten giriş yapıldı mı?)
+    // 3. 🗓️ BUGÜNKÜ MÜKERRER YOKLAMA KONTROLÜ
     const bugunBaslangic = new Date();
     bugunBaslangic.setHours(0, 0, 0, 0);
 
     const bugunBitis = new Date();
     bugunBitis.setHours(23, 59, 59, 999);
 
-    const mevcutGiris = await Yoklama.findOne({
+    const mevcutYoklama = await Yoklama.findOne({
       ogrenciId: ogrenci._id,
       tarih: { $gte: bugunBaslangic, $lte: bugunBitis },
     });
 
-    // Eğer bugün zaten kaydı varsa hata döndür ve 2. kaydı ENGELLE
-    if (mevcutGiris) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `${ogrenci.adSoyad} bugün zaten derse giriş yaptı!`,
+    if (mevcutYoklama) {
+      return NextResponse.json({
+        success: true,
+        zatenVar: true,
+        message: `⚠️ ${ogrenci.adSoyad} için bugün zaten yoklama kaydı alınmış!`,
+        ogrenci: {
+          _id: ogrenci._id,
+          adSoyad: ogrenci.adSoyad,
+          grup: ogrenci.grup || "Grup Yok",
         },
-        { status: 400 },
-      );
+      });
     }
 
-    // 3. Bugün ilk defa okutuluyorsa kaydı oluştur
+    // 4. 📝 YENİ YOKLAMA KAYDI OLUŞTUR
     const yeniYoklama = await Yoklama.create({
       ogrenciId: ogrenci._id,
-      ogrenciAdi: ogrenci.adSoyad,
-      grup: ogrenci.grup,
-      durum: "geldi",
-      yöntem: "nfc",
       tarih: new Date(),
+      durum: "geldi",
+      yoklamaTipi: "nfc",
     });
 
     return NextResponse.json({
       success: true,
-      message: `${ogrenci.adSoyad} için yoklama alındı.`,
-      ogrenci: ogrenci.adSoyad,
-      data: yeniYoklama,
+      ogrenci: {
+        _id: ogrenci._id,
+        adSoyad: ogrenci.adSoyad,
+        grup: ogrenci.grup || "Grup Yok",
+      },
+      yoklama: yeniYoklama,
     });
   } catch (error) {
+    console.error("🔴 NFC API HATASI:", error);
     return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 400 },
+      { success: false, error: "Sunucu hatası: " + error.message },
+      { status: 200 },
     );
   }
 }

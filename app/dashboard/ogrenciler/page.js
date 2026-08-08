@@ -70,15 +70,28 @@ export default function OgrenciYonetimPage() {
     }
   };
 
+  // 🛡️ DÜZELTİLEN VE KORUMAYA ALINAN YOKLAMA GEÇMİŞİ FONKSİYONU
   const ogrenciYoklamaGecmisiniGetir = async (ogrenciId) => {
     try {
       const res = await fetch(`/api/yoklama?ogrenciId=${ogrenciId}`);
-      const data = await res.json();
+      if (!res.ok) {
+        setOgrenciGirisGecmisi([]);
+        return;
+      }
+      const text = await res.text();
+      if (!text) {
+        setOgrenciGirisGecmisi([]);
+        return;
+      }
+      const data = JSON.parse(text);
       if (data.success) {
         setOgrenciGirisGecmisi(data.data || []);
+      } else {
+        setOgrenciGirisGecmisi([]);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Yoklama verisi okuma hatası engellendi:", err);
+      setOgrenciGirisGecmisi([]);
     }
   };
 
