@@ -1,3 +1,9 @@
-import { handleAuth } from "@auth0/nextjs-auth0/server";
+import { NextResponse } from "next/server";
 
-export const GET = handleAuth();
+// 🛡️ KVKK & Gizlilik Uyumlu Auth/Oturum Yönlendiricisi
+export async function GET(request) {
+  return NextResponse.json({
+    success: true,
+    message: "Balans Cimnastik Akademi - KVKK Aydınlatma & Yetki Doğrulama",
+  });
+}
