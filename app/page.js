@@ -7,26 +7,31 @@ import { useRouter } from "next/navigation";
 export default function GirisSayfasi() {
   const router = useRouter();
 
-  // 🔐 KULLANICI ADI VE ŞİFRE
-  const SABIT_KULLANICI_ADI = "admin";
-  const SABIT_SIFRE = "balans123";
-
   const [kullaniciAdi, setKullaniciAdi] = useState("");
   const [sifre, setSifre] = useState("");
   const [hata, setHata] = useState("");
   const [yukleniyor, setYukleniyor] = useState(false);
   const [animasyonBasladi, setAnimasyonBasladi] = useState(false);
 
-  const girisYap = (e) => {
+  const girisYap = async (e) => {
     e.preventDefault();
     setHata("");
     setYukleniyor(true);
 
-    setTimeout(() => {
-      if (kullaniciAdi === SABIT_KULLANICI_ADI && sifre === SABIT_SIFRE) {
-        // Oturum durumunu kaydet
-        localStorage.setItem("isLoggedIn", "true");
+    try {
+      // 🛡️ SUNUCU TARAFLI GÜVENLİ GİRİŞ İSTEĞİ
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: kullaniciAdi.trim(),
+          password: sifre.trim(),
+        }),
+      });
 
+      const data = await res.json();
+
+      if (data.success) {
         // 🤸 KADIN & ERKEK SPORCU ANİMASYONUNU BAŞLAT
         setAnimasyonBasladi(true);
 
@@ -35,10 +40,14 @@ export default function GirisSayfasi() {
           router.push("/dashboard/yoklama/nfc");
         }, 3800);
       } else {
-        setHata("Kullanıcı adı veya şifre hatalı!");
+        setHata(data.error || "Kullanıcı adı veya şifre hatalı!");
         setYukleniyor(false);
       }
-    }, 400);
+    } catch (err) {
+      console.error("Giriş Hatası:", err);
+      setHata("Sunucuya bağlanırken bir hata oluştu!");
+      setYukleniyor(false);
+    }
   };
 
   return (

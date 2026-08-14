@@ -15,6 +15,10 @@ const GrupSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    dersGunleri: {
+      type: [String], // Örn: ["Pazartesi", "Çarşamba", "Cuma"]
+      default: [],
+    },
   },
   {
     timestamps: true,

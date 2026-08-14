@@ -1,17 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
-import * as XLSX from "xlsx";
 import Link from "next/link";
 
 export default function OgrenciYonetimPage() {
-  const WHATSAPP_GRUP_LINKI = "https://chat.whatsapp.com/GrupDavetKodunuz";
+  const DEFAULT_WHATSAPP_LINK = "https://chat.whatsapp.com/GrupDavetKodunuz";
 
   const [ogrenciler, setOgrenciler] = useState([]);
-  const [gruplar, setGruplar] = useState([
-    "Minikler Cimnastik (Cumartesi-Pazar)",
-    "Yıldızlar Cimnastik (Salı-Perşembe)",
-    "İleri Seviye (Pazartesi-Çarşamba-Cuma)",
-  ]);
+  const [gruplar, setGruplar] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Arama & Filtre State'leri
@@ -21,12 +16,8 @@ export default function OgrenciYonetimPage() {
   // Panel & Modallar
   const [seciliOgrenci, setSeciliOgrenci] = useState(null);
   const [ogrenciGirisGecmisi, setOgrenciGirisGecmisi] = useState([]);
-  const [transferOgrenci, setTransferOgrenci] = useState(null);
-  const [yeniGrupAdi, setYeniGrupAdi] = useState("");
-  const [hedefGrup, setHedefGrup] = useState("");
 
-  // Excel ve Güncelleme Modalları
-  const [excelModalAcik, setExcelModalAcik] = useState(false);
+  // Güncelleme Modalı State'i
   const [duzenleModalAcik, setDuzenleModalAcik] = useState(false);
   const [duzenleForm, setDuzenleForm] = useState({});
   const [duzenleGeciciVeli, setDuzenleGeciciVeli] = useState({
@@ -35,10 +26,10 @@ export default function OgrenciYonetimPage() {
     telefon: "",
   });
 
-  // Takvim Ay/Yıl State'i
+  const [fotoUrl, setFotoUrl] = useState(null);
   const [takvimTarih, setTakvimTarih] = useState(new Date());
 
-  // Çoklu Veli State'i
+  // Çoklu Veli State'i (Yeni Kayıt İçin)
   const [eklenenVeliler, setEklenenVeliler] = useState([]);
   const [geciciVeli, setGeciciVeli] = useState({
     adSoyad: "",
@@ -46,16 +37,44 @@ export default function OgrenciYonetimPage() {
     telefon: "",
   });
 
-  // Form State
+  // 📝 KAPSAMLI YENİ KAYIT FORMU STATE'İ
   const [form, setForm] = useState({
     adSoyad: "",
-    kanGrubu: "0 Rh+",
+    dogumTarihi: "",
+    yas: "",
+    tcKimlikNo: "",
+    kanGrubu: "Bilinmiyor",
     lisansliMi: false,
-    grup: "Minikler Cimnastik (Cumartesi-Pazar)",
+    grup: "",
     aylikUcret: 2000,
     odemeGunu: 1,
     nfcKartId: "",
+    okulAnaokulu: "",
+    sinifi: "",
+    veliEposta: "",
+    veliAdres: "",
+    saglikProblemiVarMi: "Hayır",
+    saglikAciklama: "",
+    duzenliIlacVarMi: "Hayır",
+    ilacAciklama: "",
+    alerjiVarMi: "Hayır",
+    alerjiAciklama: "",
+    haftalikGunSayisi: "2 GÜN",
+    tercihGunler: "Fark Etmez",
+    hedefler: [],
+    cimnastikHedefi: "Hobi Olarak",
+    duydugunuzYer: "Tavsiye",
+    fotografIznı: "İzin Veriyorum",
+    ekBilgiler: "",
   });
+
+  const HEDEF_SECENEKLERI = [
+    "Genel Gelişim & Sosyalleşme",
+    "Esneklik & Denge Kazanımı",
+    "Kas & Postür Gelişimi",
+    "Yarışmacı Düzeye Hazırlık",
+    "Özgüven & Disiplin",
+  ];
 
   const ogrencileriGetir = async () => {
     try {
@@ -70,77 +89,118 @@ export default function OgrenciYonetimPage() {
     }
   };
 
-  // 🛡️ DÜZELTİLEN VE KORUMAYA ALINAN YOKLAMA GEÇMİŞİ FONKSİYONU
+  const gruplariGetir = async () => {
+    try {
+      const res = await fetch("/api/gruplar");
+      const data = await res.json();
+      if (data.success && data.data.length > 0) {
+        setGruplar(data.data);
+        if (!form.grup) {
+          setForm((prev) => ({
+            ...prev,
+            grup: data.data[0].ad || data.data[0],
+          }));
+        }
+      } else {
+        const varsayilan = [
+          {
+            ad: "Salı–Perşembe 17:00–18:00",
+            dersGunleri: ["Salı", "Perşembe"],
+            whatsappLink: "https://chat.whatsapp.com/SaliPersembe1718Davet",
+          },
+          {
+            ad: "Salı–Perşembe 18:00–19:00",
+            dersGunleri: ["Salı", "Perşembe"],
+            whatsappLink: "https://chat.whatsapp.com/SaliPersembe1819Davet",
+          },
+          {
+            ad: "Cumartesi–Pazar 11:00–12:00",
+            dersGunleri: ["Cumartesi", "Pazar"],
+            whatsappLink: "https://chat.whatsapp.com/CmtPazar1112Davet",
+          },
+          {
+            ad: "Cumartesi–Pazar 12:00–13:00",
+            dersGunleri: ["Cumartesi", "Pazar"],
+            whatsappLink: "https://chat.whatsapp.com/CmtPazar1213Davet",
+          },
+          {
+            ad: "Salı–Perşembe–Cumartesi–Pazar 13:30–16:00",
+            dersGunleri: ["Salı", "Perşembe", "Cumartesi", "Pazar"],
+            whatsappLink: "https://chat.whatsapp.com/PerformansGrupDavet",
+          },
+          {
+            ad: "Pazar 10:00–11:00",
+            dersGunleri: ["Pazar"],
+            whatsappLink: "https://chat.whatsapp.com/Pazar1011Davet",
+          },
+        ];
+        setGruplar(varsayilan);
+        if (!form.grup)
+          setForm((prev) => ({ ...prev, grup: varsayilan[0].ad }));
+      }
+    } catch (err) {
+      console.error("Gruplar çekilemedi:", err);
+    }
+  };
+
   const ogrenciYoklamaGecmisiniGetir = async (ogrenciId) => {
     try {
       const res = await fetch(`/api/yoklama?ogrenciId=${ogrenciId}`);
-      if (!res.ok) {
-        setOgrenciGirisGecmisi([]);
-        return;
-      }
+      if (!res.ok) return setOgrenciGirisGecmisi([]);
       const text = await res.text();
-      if (!text) {
-        setOgrenciGirisGecmisi([]);
-        return;
-      }
+      if (!text) return setOgrenciGirisGecmisi([]);
       const data = JSON.parse(text);
-      if (data.success) {
-        setOgrenciGirisGecmisi(data.data || []);
-      } else {
-        setOgrenciGirisGecmisi([]);
-      }
+      if (data.success) setOgrenciGirisGecmisi(data.data || []);
+      else setOgrenciGirisGecmisi([]);
     } catch (err) {
-      console.error("Yoklama verisi okuma hatası engellendi:", err);
       setOgrenciGirisGecmisi([]);
     }
   };
 
   useEffect(() => {
     ogrencileriGetir();
+    gruplariGetir();
   }, []);
 
   const ogrenciSecVePaneliAc = (ogrenci) => {
     setSeciliOgrenci(ogrenci);
     setDuzenleForm(JSON.parse(JSON.stringify(ogrenci)));
+    setFotoUrl(ogrenci.fotoUrl || null);
     ogrenciYoklamaGecmisiniGetir(ogrenci._id);
   };
 
-  // 📥 ÖRNEK ŞABLON EXCEL DOSYASI İNDİR
-  const ornekExcelIndir = () => {
-    const ornekVeri = [
-      {
-        "Öğrenci Adı Soyadı": "Zeynep Kaya",
-        Grup: "Minikler Cimnastik (Cumartesi-Pazar)",
-        "Veli Adı": "Ayşe Kaya",
-        Yakınlık: "Anne",
-        "Veli Telefon": "05321112233",
-        "Kan Grubu": "0 Rh+",
-        "Lisanslı mı": "Evet",
-        "Aylık Ücret": 2000,
-        "Ödeme Günü": 1,
-        "NFC Kart ID": "12345678",
-      },
-    ];
+  const hedefToggle = (hedefItem, isModal = false) => {
+    const hedefForm = isModal ? duzenleForm : form;
+    const mevcut = hedefForm.hedefler || [];
+    const yeniHedefler = mevcut.includes(hedefItem)
+      ? mevcut.filter((h) => h !== hedefItem)
+      : [...mevcut, hedefItem];
 
-    const ws = XLSX.utils.json_to_sheet(ornekVeri);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Öğrenci Kayıt Şablonu");
-    XLSX.writeFile(wb, "Balans_Cimnastik_Ornek_Ogrenci_Yukleme_Sablonu.xlsx");
+    if (isModal) {
+      setDuzenleForm({ ...duzenleForm, hedefler: yeniHedefler });
+    } else {
+      setForm({ ...form, hedefler: yeniHedefler });
+    }
   };
 
-  // 🗑️ ÖĞRENCİ SİL
-  const ogrenciSil = async (id, adSoyad) => {
+  const modalOgrenciSil = async () => {
+    if (!duzenleForm._id) return;
     if (
       !confirm(
-        `${adSoyad} isimli öğrenciyi kalıcı olarak silmek istediğinize emin misiniz?`,
+        `${duzenleForm.adSoyad} isimli öğrenciyi kalıcı olarak SİLMEK istediğinize emin misiniz?`,
       )
     )
       return;
+
     try {
-      const res = await fetch(`/api/ogrenciler/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/ogrenciler/${duzenleForm._id}`, {
+        method: "DELETE",
+      });
       const data = await res.json();
       if (data.success) {
         alert("🗑️ Öğrenci Başarıyla Silindi!");
+        setDuzenleModalAcik(false);
+        setSeciliOgrenci(null);
         ogrencileriGetir();
       } else {
         alert("Hata: " + (data.error || "Silinemedi"));
@@ -150,42 +210,77 @@ export default function OgrenciYonetimPage() {
     }
   };
 
-  // ⏸️ ÖĞRENCİ DONDUR
-  const ogrenciDondur = async (id, adSoyad) => {
+  const modalOgrenciDondur = async () => {
+    if (!duzenleForm._id) return;
     if (
       !confirm(
-        `${adSoyad} isimli öğrencinin kaydını dondurmak istediğinize emin misiniz?`,
+        `${duzenleForm.adSoyad} isimli öğrencinin kaydını dondurmak istediğinize emin misiniz?`,
       )
     )
       return;
+
     try {
-      const res = await fetch(`/api/ogrenciler/${id}`, {
+      const res = await fetch(`/api/ogrenciler/${duzenleForm._id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ durum: "pasif" }),
       });
       const data = await res.json();
       if (data.success) {
-        alert("⏸️ Öğrenci Donduruldu!");
+        alert("⏸️ Öğrenci Kaydı Donduruldu!");
+        setDuzenleModalAcik(false);
+        setSeciliOgrenci(null);
         ogrencileriGetir();
+      } else {
+        alert("Hata: " + (data.error || "İşlem başarısız"));
       }
     } catch (err) {
-      alert("Hata oluştu.");
+      alert("Dondurma işlemi sırasında hata oluştu.");
     }
   };
 
-  // ✏️ ÖĞRENCİ BİLGİLERİNİ GÜNCELLE
+  // ✏️ TÜM ALANLARI DESTEKLEYEN ÖĞRENCİ GÜNCELLEME İŞLEVİ
   const ogrenciGuncelle = async (e) => {
     e.preventDefault();
+    const eski = seciliOgrenci || {};
+    const yeni = duzenleForm;
+
+    const degisiklikler = [];
+    if (eski.adSoyad !== yeni.adSoyad)
+      degisiklikler.push(`Ad Soyad: '${eski.adSoyad}' ➔ '${yeni.adSoyad}'`);
+    if (eski.grup !== yeni.grup)
+      degisiklikler.push(`Cimnastik Grubu: '${eski.grup}' ➔ '${yeni.grup}'`);
+    if (Number(eski.aylikUcret) !== Number(yeni.aylikUcret))
+      degisiklikler.push(
+        `Aylık Ücret: '${eski.aylikUcret} ₺' ➔ '${yeni.aylikUcret} ₺'`,
+      );
+
+    const detayMetni =
+      degisiklikler.length > 0
+        ? degisiklikler.join(" | ")
+        : "Öğrenci genel bilgileri güncellendi.";
+
+    const yeniIslemLogu = {
+      islemTipi: degisiklikler.length > 0 ? "GÜNCELLEME" : "KONTROL",
+      detay: detayMetni,
+      tarih: new Date().toISOString(),
+    };
+
+    const guncelPayload = {
+      ...duzenleForm,
+      fotoUrl: fotoUrl,
+      islemGecmisi: [...(duzenleForm.islemGecmisi || []), yeniIslemLogu],
+    };
+
     try {
-      const res = await fetch(`/api/ogrenciler/${seciliOgrenci._id}`, {
+      const res = await fetch(`/api/ogrenciler/${duzenleForm._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(duzenleForm),
+        body: JSON.stringify(guncelPayload),
       });
       const data = await res.json();
       if (data.success) {
-        alert("✅ Öğrenci ve Veli Bilgileri Başarıyla Güncellendi!");
+        alert("✅ Öğrenci Bilgileri Başarıyla Güncellendi!");
         setSeciliOgrenci(data.data);
         setDuzenleModalAcik(false);
         ogrencileriGetir();
@@ -195,6 +290,27 @@ export default function OgrenciYonetimPage() {
     } catch (err) {
       alert("Güncelleme sırasında hata oluştu.");
     }
+  };
+
+  const resimYukle = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => setFotoUrl(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const veliEkle = (e) => {
+    e.preventDefault();
+    if (!geciciVeli.adSoyad.trim() || !geciciVeli.telefon.trim()) {
+      return alert("Lütfen Veli Ad Soyad ve Telefon numarasını girin!");
+    }
+    setEklenenVeliler([...eklenenVeliler, { ...geciciVeli }]);
+    setGeciciVeli({ adSoyad: "", yakinlikDerecesi: "Anne", telefon: "" });
+  };
+
+  const veliCikar = (index) => {
+    setEklenenVeliler(eklenenVeliler.filter((_, i) => i !== index));
   };
 
   const duzenleVeliEkle = (e) => {
@@ -225,198 +341,6 @@ export default function OgrenciYonetimPage() {
     });
   };
 
-  // 📊 EXCEL YÜKLE
-  const excelYukle = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      try {
-        const bstr = evt.target.result;
-        const wb = XLSX.read(bstr, { type: "binary" });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws);
-
-        if (data.length === 0)
-          return alert("Excel dosyası boş veya format hatalı!");
-
-        const yuklenecekler = data.map((item) => ({
-          adSoyad: item["Öğrenci Adı Soyadı"] || item["adSoyad"] || "",
-          grup: item["Grup"] || item["grup"] || gruplar[0],
-          kanGrubu: item["Kan Grubu"] || "0 Rh+",
-          lisansliMi: String(item["Lisanslı mı"]).toLowerCase() === "evet",
-          aylikUcret: Number(item["Aylık Ücret"]) || 2000,
-          odemeGunu: Number(item["Ödeme Günü"]) || 1,
-          nfcKartId: item["NFC Kart ID"]
-            ? String(item["NFC Kart ID"])
-            : undefined,
-          veliListesi: [
-            {
-              adSoyad: item["Veli Adı"] || "Veli",
-              yakinlikDerecesi: item["Yakınlık"] || "Anne",
-              telefon: String(item["Veli Telefon"] || "05000000000"),
-            },
-          ],
-        }));
-
-        let basarili = 0;
-        for (const ogrenci of yuklenecekler) {
-          if (ogrenci.adSoyad) {
-            await fetch("/api/ogrenciler", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(ogrenci),
-            });
-            basarili++;
-          }
-        }
-
-        alert(`🚀 Toplam ${basarili} öğrenci Excel'den başarıyla yüklendi!`);
-        setExcelModalAcik(false);
-        ogrencileriGetir();
-      } catch (err) {
-        alert("Excel dosyası okunurken hata oluştu!");
-      }
-    };
-    reader.readAsBinaryString(file);
-  };
-
-  // 📄 PDF ÇIKTI
-  const ciktiAlPdf = (ogrenciData) => {
-    const veliler =
-      ogrenciData.veliListesi && ogrenciData.veliListesi.length > 0
-        ? ogrenciData.veliListesi
-            .map(
-              (v) => `
-          <tr>
-            <td class="label">Veli Ad Soyad / Yakınlık:</td>
-            <td class="val">${v.adSoyad} (${v.yakinlikDerecesi})</td>
-            <td class="label">İletişim Telefonu:</td>
-            <td class="val">${v.telefon}</td>
-          </tr>
-        `,
-            )
-            .join("")
-        : '<tr><td colspan="4" class="empty-text">Kayıtlı Veli Bilgisi Bulunmamaktadır</td></tr>';
-
-    const printWindow = window.open("", "_blank");
-
-    const htmlIcerik = `
-      <!DOCTYPE html>
-      <html lang="tr">
-      <head>
-        <meta charset="utf-8">
-        <title>Öğrenci Kayıt Formu - ${ogrenciData.adSoyad || "Öğrenci"}</title>
-        <style>
-          @page { size: A4 portrait; margin: 12mm 15mm; }
-          * { box-sizing: border-box; }
-          body { font-family: 'Segoe UI', Arial, sans-serif; color: #0F172A; margin: 0; padding: 0; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .header-container { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0F172A; padding-bottom: 12px; margin-bottom: 18px; }
-          .brand-info { flex: 1; }
-          .brand-title { font-size: 19pt; font-weight: 800; color: #0F172A; letter-spacing: 0.5px; text-transform: uppercase; }
-          .brand-sub { font-size: 10.5pt; font-weight: 700; color: #D97706; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 3px; }
-          .photo-box { width: 4.5cm; height: 4.5cm; min-width: 4.5cm; min-height: 4.5cm; max-width: 4.5cm; max-height: 4.5cm; border: 2px dashed #475569; border-radius: 6px; background-color: #F8FAFC; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-size: 8pt; font-weight: 700; color: #475569; margin-left: 15px; }
-          .photo-box span { font-size: 7pt; font-weight: 400; color: #94A3B8; margin-top: 2px; }
-          .section-header { background-color: #0F172A; color: #FFFFFF; font-size: 9.5pt; font-weight: 800; padding: 5px 10px; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 14px; border-radius: 4px; }
-          .data-table { width: 100%; border-collapse: collapse; margin-top: 5px; margin-bottom: 10px; }
-          .data-table td { border: 1px solid #CBD5E1; padding: 7px 10px; font-size: 9pt; }
-          .label { background-color: #F1F5F9; font-weight: 700; color: #334155; width: 25%; }
-          .val { font-weight: 600; color: #0F172A; width: 25%; }
-          .empty-text { text-align: center; color: #94A3B8; font-style: italic; padding: 10px; }
-          .footer-signatures { display: flex; justify-content: space-between; margin-top: 40px; padding: 0 30px; }
-          .sig-box { text-align: center; font-size: 9pt; font-weight: 700; color: #334155; width: 40%; }
-          .sig-line { margin-top: 45px; border-bottom: 1.5px solid #0F172A; }
-        </style>
-      </head>
-      <body>
-        <div class="header-container">
-          <div class="brand-info">
-            <div class="brand-title">BALANS CİMNASTİK AKADEMİSİ</div>
-            <div class="brand-sub">RESMİ ÖĞRENCİ KAYIT VE SÖZLEŞME FORMU</div>
-          </div>
-          <div class="photo-box">
-            FOTOĞRAF ALANI
-            <span>( 4.5 cm x 4.5 cm )</span>
-          </div>
-        </div>
-
-        <div class="section-header">1. SPORCU KİŞİSEL BİLGİLERİ</div>
-        <table class="data-table">
-          <tr>
-            <td class="label">Sporcu Ad Soyad:</td>
-            <td class="val" style="color: #1E3A8A; font-size: 10pt; font-weight: 800;">${ogrenciData.adSoyad || "..........................................."}</td>
-            <td class="label">Kan Grubu:</td>
-            <td class="val">${ogrenciData.kanGrubu || "Belirtilmedi"}</td>
-          </tr>
-          <tr>
-            <td class="label">Cimnastik Grubu:</td>
-            <td class="val">${ogrenciData.grup || "..........................................."}</td>
-            <td class="label">Sporcu Lisansı:</td>
-            <td class="val">${ogrenciData.lisansliMi ? "✓ Var (Lisanslı)" : "Yok"}</td>
-          </tr>
-          <tr>
-            <td class="label">NFC Kart / Bileklik ID:</td>
-            <td class="val">${ogrenciData.nfcKartId || "Tanımlanmadı"}</td>
-            <td class="label">Kayıt Tarihi:</td>
-            <td class="val">${new Date(ogrenciData.kayitTarihi || Date.now()).toLocaleDateString("tr-TR")}</td>
-          </tr>
-        </table>
-
-        <div class="section-header">2. VELİ VE İLETİŞİM BİLGİLERİ</div>
-        <table class="data-table">
-          ${veliler}
-        </table>
-
-        <div class="section-header">3. DERS VE AİDAT TAKVİMİ</div>
-        <table class="data-table">
-          <tr>
-            <td class="label">Anlaşılan Aylık Ücret:</td>
-            <td class="val" style="color: #047857; font-weight: 800;">${ogrenciData.aylikUcret || 2000} ₺</td>
-            <td class="label">Aylık Ödeme Günü:</td>
-            <td class="val">Her ayın ${ogrenciData.odemeGunu || 1}. günü</td>
-          </tr>
-        </table>
-
-        <div class="footer-signatures">
-          <div class="sig-box">
-            Akademi Yetkilisi İmza
-            <div class="sig-line"></div>
-          </div>
-          <div class="sig-box">
-            Veli Ad Soyad / İmza
-            <div class="sig-line"></div>
-          </div>
-        </div>
-
-        <script>
-          window.onload = function() {
-            setTimeout(function() { window.print(); }, 300);
-          };
-        </script>
-      </body>
-      </html>
-    `;
-
-    printWindow.document.open();
-    printWindow.document.write(htmlIcerik);
-    printWindow.document.close();
-  };
-
-  const veliEkle = (e) => {
-    e.preventDefault();
-    if (!geciciVeli.adSoyad.trim() || !geciciVeli.telefon.trim()) {
-      return alert("Lütfen Veli Ad Soyad ve Telefon numarasını girin!");
-    }
-    setEklenenVeliler([...eklenenVeliler, { ...geciciVeli }]);
-    setGeciciVeli({ adSoyad: "", yakinlikDerecesi: "Anne", telefon: "" });
-  };
-
-  const veliCikar = (index) => {
-    setEklenenVeliler(eklenenVeliler.filter((_, i) => i !== index));
-  };
-
   const yeniOgrenciKaydet = async (e) => {
     e.preventDefault();
     if (eklenenVeliler.length === 0)
@@ -424,6 +348,7 @@ export default function OgrenciYonetimPage() {
 
     const payload = {
       ...form,
+      fotoUrl: fotoUrl,
       veliListesi: eklenenVeliler,
       nfcKartId: form.nfcKartId || undefined,
     };
@@ -439,13 +364,35 @@ export default function OgrenciYonetimPage() {
       alert("🚀 Öğrenci Kaydedildi!");
       setForm({
         adSoyad: "",
-        kanGrubu: "0 Rh+",
+        dogumTarihi: "",
+        yas: "",
+        tcKimlikNo: "",
+        kanGrubu: "Bilinmiyor",
         lisansliMi: false,
-        grup: gruplar[0],
+        grup:
+          (typeof gruplar[0] === "object" ? gruplar[0]?.ad : gruplar[0]) || "",
         aylikUcret: 2000,
         odemeGunu: 1,
         nfcKartId: "",
+        okulAnaokulu: "",
+        sinifi: "",
+        veliEposta: "",
+        veliAdres: "",
+        saglikProblemiVarMi: "Hayır",
+        saglikAciklama: "",
+        duzenliIlacVarMi: "Hayır",
+        ilacAciklama: "",
+        alerjiVarMi: "Hayır",
+        alerjiAciklama: "",
+        haftalikGunSayisi: "2 GÜN",
+        tercihGunler: "Fark Etmez",
+        hedefler: [],
+        cimnastikHedefi: "Hobi Olarak",
+        duydugunuzYer: "Tavsiye",
+        fotografIznı: "İzin Veriyorum",
+        ekBilgiler: "",
       });
+      setFotoUrl(null);
       setEklenenVeliler([]);
       ogrencileriGetir();
     } else {
@@ -453,39 +400,327 @@ export default function OgrenciYonetimPage() {
     }
   };
 
-  const whatsappDavetGonder = (telefon, ogrenciAdi) => {
+  // 📄 WORD KAYIT FORMU İNDİRME (.DOC)
+  const ciktiAlWord = (ogrenciData) => {
+    const veliIlk = ogrenciData.veliListesi?.[0] || {};
+
+    const fotoHtml = fotoUrl
+      ? `<img src="${fotoUrl}" style="width: 110px; height: 110px; border-radius: 6px; object-fit: cover; border: 1.5px solid #0F172A;" />`
+      : `<div style="width: 110px; height: 110px; border: 1.5px dashed #475569; border-radius: 6px; text-align: center; font-size: 8pt; color: #475569; line-height: 110px;">FOTOĞRAF ALANI</div>`;
+
+    const htmlContent = `
+      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <meta charset='utf-8'>
+        <title>Balans Cimnastik Sporcu Kayıt Formu - ${ogrenciData.adSoyad || ""}</title>
+        <style>
+          @page { size: A4 portrait; margin: 0.2cm 0.2cm 0.2cm 1.5cm; }
+          body { font-family: 'Times New Roman', Times, serif; color: #0F172A; font-size: 10pt; line-height: 1.2; margin: 0; padding: 0; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+          td { padding: 4px 6px; border: 1px solid #CBD5E1; vertical-align: top; }
+          .header-title { text-align: center; font-size: 15pt; font-weight: bold; letter-spacing: 1.5px; }
+          .header-sub { text-align: center; font-size: 10pt; font-weight: bold; color: #0F172A; }
+          .slogan { text-align: center; font-size: 8pt; font-weight: bold; color: #B45309; letter-spacing: 0.5px; margin-bottom: 6px; }
+          .sec-header { background-color: #0F172A; color: #FFFFFF; font-weight: bold; padding: 3px 6px; font-size: 9.5pt; border-radius: 2px; margin-top: 6px; margin-bottom: 3px; }
+          .bg-label { background-color: #F8FAFC; font-weight: bold; color: #334155; width: 22%; }
+          .val { font-weight: bold; color: #0F172A; width: 28%; }
+          .page-break { page-break-before: always; }
+          .rule-box { margin-bottom: 6px; }
+          .rule-title { font-weight: bold; font-size: 8.5pt; color: #0F172A; border-bottom: 1px solid #0F172A; padding-bottom: 1px; margin-bottom: 2px; }
+          .rule-desc { font-size: 8pt; color: #334155; margin-left: 6px; line-height: 1.15; }
+        </style>
+      </head>
+      <body>
+        <!-- SAYFA 1: SPORCU KAYIT FORMU -->
+        <table>
+          <tr>
+            <td style="border:none; width:20%;"></td>
+            <td style="border:none; text-align:center; width:60%;">
+              <div class="header-title">BALANS</div>
+              <div class="header-sub">CİMNASTİK AKADEMİSİ</div>
+              <div style="font-size:12pt; font-weight:bold; margin-top:2px;">SPORCU KAYIT FORMU</div>
+              <div class="slogan">★ ELİT EĞİTİM • GÜÇLÜ GELECEK • SINIRSIZ POTANSİYEL ★</div>
+            </td>
+            <td style="border:none; text-align:right; width:20%;">${fotoHtml}</td>
+          </tr>
+        </table>
+
+        <table>
+          <tr>
+            <td style="width:50%; border:none; padding:0 3px 0 0;">
+              <div class="sec-header">👤 1. SPORCU BİLGİLERİ</div>
+              <table>
+                <tr><td class="bg-label">Ad Soyad:</td><td class="val" colspan="3">${ogrenciData.adSoyad || ""}</td></tr>
+                <tr><td class="bg-label">Doğum Tarihi:</td><td class="val">${ogrenciData.dogumTarihi || ""}</td><td class="bg-label">Yaş:</td><td class="val">${ogrenciData.yas || ""}</td></tr>
+                <tr><td class="bg-label">T.C. Kimlik No:</td><td class="val" colspan="3">${ogrenciData.tcKimlikNo || ""}</td></tr>
+                <tr><td class="bg-label">Kan Grubu:</td><td class="val">${ogrenciData.kanGrubu || "Bilinmiyor"}</td><td class="bg-label">Lisans:</td><td class="val">${ogrenciData.lisansliMi ? "✓ Var" : "Yok"}</td></tr>
+              </table>
+            </td>
+            <td style="width:50%; border:none; padding:0 0 0 3px;">
+              <div class="sec-header">🎓 2. EĞİTİM BİLGİLERİ</div>
+              <table>
+                <tr><td class="bg-label">Okul / Anaokulu:</td><td class="val" colspan="3">${ogrenciData.okulAnaokulu || ""}</td></tr>
+                <tr><td class="bg-label">Sınıfı:</td><td class="val" colspan="3">${ogrenciData.sinifi || ""}</td></tr>
+                <tr><td class="bg-label">Cimnastik Grubu:</td><td class="val" colspan="3">${ogrenciData.grup || ""}</td></tr>
+                <tr><td class="bg-label">Aylık Aidat:</td><td class="val" colspan="3">${ogrenciData.aylikUcret || 2000} ₺ (Her ayın ${ogrenciData.odemeGunu || 1}. günü)</td></tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+
+        <table>
+          <tr>
+            <td style="width:50%; border:none; padding:0 3px 0 0;">
+              <div class="sec-header">👨‍👩‍👧 3. VELİ BİLGİLERİ</div>
+              <table>
+                <tr><td class="bg-label">Veli Ad Soyad:</td><td class="val">${veliIlk.adSoyad || ""} (${veliIlk.yakinlikDerecesi || "Veli"})</td></tr>
+                <tr><td class="bg-label">Telefon:</td><td class="val">${veliIlk.telefon || ""}</td></tr>
+                <tr><td class="bg-label">E-posta:</td><td class="val">${ogrenciData.veliEposta || ""}</td></tr>
+                <tr><td class="bg-label">Adres:</td><td class="val">${ogrenciData.veliAdres || ""}</td></tr>
+              </table>
+            </td>
+            <td style="width:50%; border:none; padding:0 0 0 3px;">
+              <div class="sec-header">🩺 4. SAĞLIK BİLGİLERİ</div>
+              <table>
+                <tr><td class="bg-label">Sağlık Problemi:</td><td class="val">${ogrenciData.saglikProblemiVarMi || "Hayır"} ${ogrenciData.saglikAciklama ? "(" + ogrenciData.saglikAciklama + ")" : ""}</td></tr>
+                <tr><td class="bg-label">Düzenli İlaç:</td><td class="val">${ogrenciData.duzenliIlacVarMi || "Hayır"} ${ogrenciData.ilacAciklama ? "(" + ogrenciData.ilacAciklama + ")" : ""}</td></tr>
+                <tr><td class="bg-label">Alerji Durumu:</td><td class="val">${ogrenciData.alerjiVarMi || "Hayır"} ${ogrenciData.alerjiAciklama ? "(" + ogrenciData.alerjiAciklama + ")" : ""}</td></tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+
+        <table>
+          <tr>
+            <td style="width:33%; border:none; padding-right:2px;">
+              <div class="sec-header">📅 5. ANTRENMAN TERCİHLERİ</div>
+              <div style="font-size:8pt; padding:2px;">
+                <b>Haftalık Gün:</b> ${ogrenciData.haftalikGunSayisi || "2 GÜN"}<br/>
+                <b>Tercih Günleri:</b> ${ogrenciData.tercihGunler || "Fark Etmez"}
+              </div>
+            </td>
+            <td style="width:34%; border:none; padding:0 2px;">
+              <div class="sec-header">🎯 6. HEDEFLER</div>
+              <div style="font-size:8pt; padding:2px;">
+                ${(ogrenciData.hedefler || ["Genel Gelişim"]).map((h) => "✓ " + h).join("<br/>")}
+              </div>
+            </td>
+            <td style="width:33%; border:none; padding-left:2px;">
+              <div class="sec-header">🏆 7. CİMNASTİK HEDEFİ</div>
+              <div style="font-size:8pt; padding:2px;">
+                <b>Hedef:</b> ${ogrenciData.cimnastikHedefi || "Hobi Olarak"}
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <table>
+          <tr>
+            <td style="width:33%; border:none; padding-right:2px;">
+              <div class="sec-header">📢 8. BİZİ NEREDEN DUYDUNUZ?</div>
+              <div style="font-size:8pt; padding:2px;">
+                <b>Kaynak:</b> ${ogrenciData.duydugunuzYer || "Tavsiye"}
+              </div>
+            </td>
+            <td style="width:34%; border:none; padding:0 2px;">
+              <div class="sec-header">📷 9. FOTOĞRAF / VİDEO İZNİ</div>
+              <div style="font-size:8pt; padding:2px;">
+                <b>Durum:</b> ${ogrenciData.fotografIznı || "İzin Veriyorum"}
+              </div>
+            </td>
+            <td style="width:33%; border:none; padding-left:2px;">
+              <div class="sec-header">📝 10. EK BİLGİLER</div>
+              <div style="font-size:8pt; padding:2px;">
+                ${ogrenciData.ekBilgiler || "Yok"}
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <div class="sec-header">✔ 11. VELİ ONAYI</div>
+        <div style="font-size:8pt; margin-bottom:8px; padding:2px;">
+          Yukarıda verdiğim bilgilerin doğru olduğunu beyan eder, Balans Cimnastik Akademi kurallarını kabul ettiğimi onaylarım.
+        </div>
+
+        <table style="border:none; margin-top:10px;">
+          <tr>
+            <td style="border:none; text-align:center; width:50%;">
+              <b>Akademi Yetkilisi İmza</b><br/><br/>______________________
+            </td>
+            <td style="border:none; text-align:center; width:50%;">
+              <b>Veli Ad Soyad / İmza</b><br/>
+              <b>${veliIlk.adSoyad || "........................................"}</b><br/>
+              Tarih: ____ / ____ / ________
+            </td>
+          </tr>
+        </table>
+
+        <!-- SAYFA 2: KURAL VE ŞARTLAR -->
+        <div class="page-break"></div>
+
+        <table style="border:none;">
+          <tr>
+            <td style="border:none; width:20%;"></td>
+            <td style="border:none; text-align:center; width:60%;">
+              <div class="header-title">BALANS</div>
+              <div class="header-sub">CİMNASTİK AKADEMİSİ</div>
+              <div style="font-size:13pt; font-weight:bold; margin-top:4px; letter-spacing:1px;">KURAL VE ŞARTLAR</div>
+              <div style="color:#B45309; font-size:9pt;">★ ★ ★</div>
+            </td>
+            <td style="border:none; width:20%;"></td>
+          </tr>
+        </table>
+
+        <div style="font-size:8.5pt; font-style:italic; margin-bottom:10px;">
+          <b>Sevgili Veliler,</b><br/>
+          Balans Cimnastik Akademi'de amacımız çocuklarımıza güvenli, disiplinli ve verimli bir spor ortamı sunmaktır. Eğitim kalitesinin korunabilmesi ve sporcularımızın sağlıklı gelişim gösterebilmesi için aşağıdaki kuralların dikkatle okunmasını rica ederiz.
+        </div>
+
+        <table style="border:none;">
+          <tr>
+            <td style="width:50%; border:none; padding-right:5px;">
+              <div class="rule-box">
+                <div class="rule-title">📅 1. DEVAM ZORUNLULUĞU</div>
+                <div class="rule-desc">
+                  • Düzenli devam, öğrencinin gelişimi açısından büyük önem taşımaktadır.<br/>
+                  • Devamsızlık durumunda ay içerisinde en fazla 1 (bir) telafi dersi hakkı bulunmaktadır.<br/>
+                  • Kullanılmayan telafi hakları bir sonraki aya devredilemez.<br/>
+                  • Telafi dersleri yalnızca uygun kontenjan bulunan gruplarda planlanabilir.<br/>
+                  • Uzun süreli devamsızlıklar sporcunun gelişimini ve grup içindeki seviyesini olumsuz etkileyebilir.
+                </div>
+              </div>
+
+              <div class="rule-box">
+                <div class="rule-title">🏛 3. RESMİ TATİLLER</div>
+                <div class="rule-desc">
+                  • Resmi tatillerde ve devlet tarafından ilan edilen tatil günlerinde ders yapılmamaktadır.<br/>
+                  • Bu günler için ayrıca telafi dersi uygulanmaz.
+                </div>
+              </div>
+
+              <div class="rule-box">
+                <div class="rule-title">💳 5. KAYIT İPTALİ VE ÜCRET İADESİ</div>
+                <div class="rule-desc">
+                  • Kayıt sonrası öğrenci toplamda 2 dersten daha az katılım sağlamışsa kayıt iptali ve ücret iadesi talep edilebilir.<br/>
+                  • 2 ders ve üzeri katılım sağlanması durumunda ücret iadesi yapılmaz.<br/>
+                  • Kayıt ücreti, sporcu adına ayrılan kontenjan ve planlama kapsamında tahsil edilmektedir.
+                </div>
+              </div>
+
+              <div class="rule-box">
+                <div class="rule-title">👨‍👩‍👧 7. VELİLER İÇİN BİLGİLENDİRME</div>
+                <div class="rule-desc">
+                  • Temel eğitim gruplarında veliler izleme alanından dersleri takip edebilirler.<br/>
+                  • Performans, altyapı ve yarışma gruplarında sporcuların dikkatlerini koruyabilmeleri, bağımsızlık geliştirebilmeleri ve antrenman kalitesinin sürdürülebilmesi amacıyla veli izleme uygulaması bulunmamaktadır.<br/>
+                  • Bu grupların antrenmanları yalnızca antrenörler ve sporcuların katılımıyla gerçekleştirilmektedir.<br/>
+                  • Veliler sporcuların gelişimi hakkında antrenörlerden düzenli olarak bilgi alabilirler.
+                </div>
+              </div>
+
+              <div class="rule-box">
+                <div class="rule-title">🌟 9. AKADEMİ PRENSİBİ</div>
+                <div class="rule-desc">
+                  Balans Cimnastik Akademi'de hedefimiz yalnızca başarılı sporcular yetiştirmek değildir. Çocuklarımızın disiplinli, mücadeleci, özgüvenli, sorumluluk sahibi ve güçlü karakterli bireyler olarak yetişmelerine katkı sağlamayı amaçlıyoruz. Sporcu gelişiminde süreklilik, sabır ve emek en önemli unsurlardır. Bu nedenle akademimizde süreç, sonuç kadar değerlidir.
+                </div>
+              </div>
+            </td>
+
+            <td style="width:50%; border:none; padding-left:5px;">
+              <div class="rule-box">
+                <div class="rule-title">🤸‍♀️ 2. PERFORMANS GRUBU</div>
+                <div class="rule-desc">
+                  • Performans grubunda yer alan sporcular için her ay en az 1 (bir) özel ders alınması zorunludur.<br/>
+                  • Özel dersler sporcuların bireysel eksiklerini tamamlamak, teknik gelişimlerini hızlandırmak ve yarışma hazırlıklarını desteklemek amacıyla uygulanmaktadır.
+                </div>
+              </div>
+
+              <div class="rule-box">
+                <div class="rule-title">⏸ 4. KAYIT DONDURMA</div>
+                <div class="rule-desc">
+                  • Kayıt dondurma süresi en fazla 3 (üç) haftadır.<br/>
+                  • Kayıt dondurma talepleri önceden yazılı olarak bildirilmelidir.<br/>
+                  • Geriye dönük kayıt dondurma işlemi yapılamaz.
+                </div>
+              </div>
+
+              <div class="rule-box">
+                <div class="rule-title">👕 6. DERS KURALLARI</div>
+                <div class="rule-desc">
+                  • Derslere zamanında gelinmesi önemlidir.<br/>
+                  • Sporcular derslere uygun spor kıyafeti ile katılmalıdır.<br/>
+                  • Uzun saçlar toplu olmalıdır.<br/>
+                  • Takı, saat, bileklik ve benzeri aksesuarlarla derse girilmemelidir.<br/>
+                  • Ders sırasında cep telefonu kullanımı yasaktır.<br/>
+                  • Cam şişe ile salona giriş yapılmamaktadır.<br/>
+                  • Akademi kurallarına ve antrenör talimatlarına uyulması zorunludur.
+                </div>
+              </div>
+
+              <div class="rule-box">
+                <div class="rule-title">⛺ 8. KAMP VE GELİŞİM PROGRAMLARI</div>
+                <div class="rule-desc">
+                  • Altyapı, performans ve yarışma gruplarında yer alan sporcular için kamp programları ve akademi tarafından planlanan ek çalışmalar gelişim sürecinin önemli bir parçasıdır.<br/>
+                  • Kamp katılımları sporcuların teknik gelişimi, fiziksel hazırlığı ve takım uyumu açısından değerlendirilmektedir.<br/>
+                  • Kamp ve gelişim programlarına düzenli katılım, sporcunun yarışma kadrosunda yer alıp almayacağını etkileyen kriterlerden biridir.<br/>
+                  • Yarışmalara katılım kararı yalnızca yaş veya kıdeme göre değil; devam durumu, antrenman performansı, kamp katılımı, disiplin ve teknik yeterlilik göz önünde bulundurularak antrenörler tarafından verilir.<br/>
+                  • Balans Cimnastik Akademi, sporcunun gelişimini ve hazır bulunuşluk seviyesini esas alarak yarışma katılımı konusunda karar verme hakkını saklı tutar.
+                </div>
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <table style="border:none; margin-top:15px;">
+          <tr>
+            <td style="border:none; text-align:center; width:100%;">
+              <div style="font-size:9pt; font-weight:bold; margin-bottom:10px;">
+                Yukarıda belirtilen kuralları okuduğumu ve kabul ettiğimi beyan ederim.
+              </div>
+              <div style="font-size:9pt;">
+                <b>Veli Ad Soyad:</b> ${veliIlk.adSoyad || "..........................................."} <br/><br/>
+                <b>İmza:</b> ___________________________ <br/><br/>
+                <b>Tarih:</b> ____ / ____ / ________
+              </div>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob(["\ufeff", htmlContent], {
+      type: "application/msword",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Balans_Cimnastik_Kayit_Formu_${(ogrenciData.adSoyad || "Ogrenci").replace(/\s+/g, "_")}.doc`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const whatsappDavetGonder = (telefon, ogrenciAdi, ogrenciGrubu) => {
     const temizTelefon = telefon.replace(/\D/g, "");
-    const mesaj = `Merhaba, Balans Cimnastik Akademi'ye hoş geldiniz! ${ogrenciAdi} isimli öğrencimizin duyurularını takip edebileceğiniz WhatsApp grubumuzun katılım linki: ${WHATSAPP_GRUP_LINKI}`;
+    const tel = temizTelefon.startsWith("90")
+      ? temizTelefon
+      : `90${temizTelefon}`;
+
+    const ogrenciGrupNesnesi = gruplar.find(
+      (g) => (typeof g === "object" ? g.ad : g) === ogrenciGrubu,
+    );
+
+    const dinamikWhatsappLink =
+      ogrenciGrupNesnesi?.whatsappLink || DEFAULT_WHATSAPP_LINK;
+
+    const mesaj = `Merhaba, Balans Cimnastik Akademi'ye hoş geldiniz! ${ogrenciAdi} isimli öğrencimizin duyurularını takip edebileceğiniz ${ogrenciGrubu} WhatsApp grubumuzun katılım linki: ${dinamikWhatsappLink}`;
+
     window.open(
-      `https://api.whatsapp.com/send?phone=90${temizTelefon}&text=${encodeURIComponent(mesaj)}`,
+      `https://api.whatsapp.com/send?phone=${tel}&text=${encodeURIComponent(mesaj)}`,
       "_blank",
     );
   };
 
-  const yeniGrupEkle = () => {
-    if (!yeniGrupAdi.trim()) return;
-    if (gruplar.includes(yeniGrupAdi.trim()))
-      return alert("Bu grup zaten mevcut!");
-    setGruplar([...gruplar, yeniGrupAdi.trim()]);
-    setYeniGrupAdi("");
-  };
-
-  const grupTransferiYap = async () => {
-    if (!hedefGrup) return alert("Hedef grubu seçin!");
-    const res = await fetch(`/api/ogrenciler/${transferOgrenci._id}/transfer`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ yeniGrup: hedefGrup }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      alert("🔄 Transfer Edildi!");
-      setTransferOgrenci(null);
-      ogrencileriGetir();
-    }
-  };
-
-  // 🎯 DÜZELTİLMİŞ KESİN GÜN TESPİT TAKVİMİ
   const takvimGunleriniGetir = () => {
     const yil = takvimTarih.getFullYear();
     const ay = takvimTarih.getMonth();
@@ -500,7 +735,12 @@ export default function OgrenciYonetimPage() {
       gunler.push({ bos: true });
     }
 
-    const grupAdi = (seciliOgrenci?.grup || "").toLowerCase();
+    const seciliGrupNesnesi = gruplar.find(
+      (g) => (typeof g === "object" ? g.ad : g) === seciliOgrenci?.grup,
+    );
+
+    const grupDersGunleri = seciliGrupNesnesi?.dersGunleri || [];
+
     const gunIsimleri = [
       "Pazar",
       "Pazartesi",
@@ -512,7 +752,8 @@ export default function OgrenciYonetimPage() {
     ];
 
     const nfcGirisTarihleri = ogrenciGirisGecmisi.map((y) => {
-      return new Date(y.tarih).toISOString().split("T")[0];
+      const d = new Date(y.tarih);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     });
 
     for (let g = 1; g <= toplamGun; g++) {
@@ -520,10 +761,15 @@ export default function OgrenciYonetimPage() {
       const haftaninGunuIndeksi = tarihObj.getDay();
       const gunAdi = gunIsimleri[haftaninGunuIndeksi];
 
-      // Kelime sınırı regex araması ile Cuma-Cumartesi karışıklığı engellendi
-      const dersGunuMu = new RegExp(`\\b${gunAdi.toLowerCase()}\\b`, "i").test(
-        grupAdi,
-      );
+      let dersGunuMu = false;
+      if (grupDersGunleri.length > 0) {
+        dersGunuMu = grupDersGunleri.includes(gunAdi);
+      } else {
+        const grupMetni = (seciliOgrenci?.grup || "").toLowerCase();
+        dersGunuMu = new RegExp(`\\b${gunAdi.toLowerCase()}\\b`, "i").test(
+          grupMetni,
+        );
+      }
 
       const tFormatli = `${yil}-${String(ay + 1).padStart(2, "0")}-${String(g).padStart(2, "0")}`;
       const nfcGirisYapildiMu = nfcGirisTarihleri.includes(tFormatli);
@@ -554,7 +800,7 @@ export default function OgrenciYonetimPage() {
     return aramaUyumlu && grupUyumlu;
   });
 
-  // 🔴 ÖĞRENCİ ÖZEL PANELİ
+  // ÖĞRENCİ BİREYSEL DETAY EKRANI
   if (seciliOgrenci) {
     const ayIsimleri = [
       "Ocak",
@@ -565,21 +811,24 @@ export default function OgrenciYonetimPage() {
       "Haziran",
       "Temmuz",
       "Ağustos",
-      "Eylul",
+      "Eylül",
       "Ekim",
       "Kasım",
       "Aralık",
     ];
 
     const takvimGunleri = takvimGunleriniGetir();
+    const seciliGrupNesnesi = gruplar.find(
+      (g) => (typeof g === "object" ? g.ad : g) === seciliOgrenci?.grup,
+    );
 
     return (
-      <div className="space-y-6 animate-fadeIn text-slate-900 pb-12">
+      <div className="space-y-6 animate-fadeIn text-slate-900 pb-12 font-sans">
         <div className="bg-[#0F172A] text-white p-6 rounded-3xl shadow-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border border-slate-800">
           <div className="flex items-center space-x-4">
             <button
               onClick={() => setSeciliOgrenci(null)}
-              className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-black px-4 py-2.5 rounded-2xl text-xs flex items-center gap-2 shadow-lg transition-all"
+              className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-black px-4 py-2.5 rounded-2xl text-xs flex items-center gap-2 shadow-lg transition-all cursor-pointer"
             >
               <span>←</span>
               <span>Öğrenci Listesine Dön</span>
@@ -589,27 +838,31 @@ export default function OgrenciYonetimPage() {
               <h1 className="text-2xl font-black text-white tracking-wide">
                 {seciliOgrenci.adSoyad}
               </h1>
-              <p className="text-xs font-bold text-amber-400 uppercase tracking-widest mt-0.5">
-                {seciliOgrenci.grup} • Özel Öğrenci Paneli
+              <p className="text-xs font-bold text-amber-400 tracking-wide mt-0.5">
+                {seciliOgrenci.adSoyad} Bireysel Sayfasıdır.
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setDuzenleModalAcik(true)}
-              className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-black px-4 py-3 rounded-2xl text-xs flex items-center gap-2 shadow-xl"
+              onClick={() => {
+                setDuzenleForm(JSON.parse(JSON.stringify(seciliOgrenci)));
+                setFotoUrl(seciliOgrenci.fotoUrl || null);
+                setDuzenleModalAcik(true);
+              }}
+              className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-black px-4 py-3 rounded-2xl text-xs flex items-center gap-2 shadow-xl cursor-pointer"
             >
               <span>✏️</span>
-              <span>Bilgileri Güncelle</span>
+              <span>Bilgileri Güncelle / Yönet</span>
             </button>
 
             <button
-              onClick={() => ciktiAlPdf(seciliOgrenci)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-black px-5 py-3 rounded-2xl text-xs flex items-center gap-2 shadow-xl border border-blue-400/30"
+              onClick={() => ciktiAlWord(seciliOgrenci)}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-black px-5 py-3 rounded-2xl text-xs flex items-center gap-2 shadow-xl border border-blue-400/30 cursor-pointer"
             >
-              <span>📄</span>
-              <span>Resmi PDF Kayıt Formu İndir</span>
+              <span>📝</span>
+              <span>Word Kayıt Formu İndir (.doc)</span>
             </button>
           </div>
         </div>
@@ -620,7 +873,9 @@ export default function OgrenciYonetimPage() {
               Lisans Durumu
             </span>
             <p
-              className={`text-base font-black mt-1 ${seciliOgrenci.lisansliMi ? "text-emerald-600" : "text-slate-600"}`}
+              className={`text-sm font-black mt-1 ${
+                seciliOgrenci.lisansliMi ? "text-emerald-600" : "text-slate-600"
+              }`}
             >
               {seciliOgrenci.lisansliMi
                 ? "✓ Lisanslı Sporcu"
@@ -632,8 +887,8 @@ export default function OgrenciYonetimPage() {
             <span className="text-[10px] font-black uppercase text-slate-400">
               Kan Grubu
             </span>
-            <p className="text-base font-black text-slate-900 mt-1">
-              {seciliOgrenci.kanGrubu || "Belirtilmedi"}
+            <p className="text-sm font-black text-slate-900 mt-1">
+              {seciliOgrenci.kanGrubu || "Bilinmiyor"}
             </p>
           </div>
 
@@ -641,7 +896,7 @@ export default function OgrenciYonetimPage() {
             <span className="text-[10px] font-black uppercase text-slate-400">
               NFC Kart ID
             </span>
-            <p className="text-base font-mono font-black text-amber-600 mt-1">
+            <p className="text-sm font-mono font-black text-amber-600 mt-1">
               {seciliOgrenci.nfcKartId || "Tanımlı Değil"}
             </p>
           </div>
@@ -650,7 +905,7 @@ export default function OgrenciYonetimPage() {
             <span className="text-[10px] font-black uppercase text-slate-400">
               Aylık Aidat
             </span>
-            <p className="text-base font-black text-emerald-700 mt-1">
+            <p className="text-sm font-black text-emerald-700 mt-1">
               ₺{seciliOgrenci.aylikUcret || 2000} / Ayın{" "}
               {seciliOgrenci.odemeGunu || 1}. günü
             </p>
@@ -665,8 +920,8 @@ export default function OgrenciYonetimPage() {
                   <span>📅</span> NFC Katılım Takvimi
                 </h2>
                 <p className="text-xs font-bold text-slate-500">
-                  Kart okutarak derse giriş yapılan günler yeşil tik (✓) ile
-                  gösterilir.
+                  Ders günleri turuncu renktedir. Katılım sağlandığında yeşil
+                  tik (✓) görünür.
                 </p>
               </div>
 
@@ -681,7 +936,7 @@ export default function OgrenciYonetimPage() {
                       ),
                     )
                   }
-                  className="px-2.5 py-1 rounded-xl bg-white font-black text-xs shadow-sm hover:bg-slate-200"
+                  className="px-2.5 py-1 rounded-xl bg-white font-black text-xs shadow-sm hover:bg-slate-200 cursor-pointer"
                 >
                   ◄
                 </button>
@@ -699,7 +954,7 @@ export default function OgrenciYonetimPage() {
                       ),
                     )
                   }
-                  className="px-2.5 py-1 rounded-xl bg-white font-black text-xs shadow-sm hover:bg-slate-200"
+                  className="px-2.5 py-1 rounded-xl bg-white font-black text-xs shadow-sm hover:bg-slate-200 cursor-pointer"
                 >
                   ►
                 </button>
@@ -735,7 +990,7 @@ export default function OgrenciYonetimPage() {
                       "bg-emerald-100 border-emerald-500 text-emerald-950 shadow-md font-black";
                   } else if (item.dersGunuMu) {
                     hucreStil =
-                      "bg-amber-50/50 border-amber-300 text-amber-900 font-bold";
+                      "bg-amber-100 border-amber-400 text-amber-950 font-black shadow-sm";
                   }
 
                   return (
@@ -750,7 +1005,7 @@ export default function OgrenciYonetimPage() {
                           ✓
                         </span>
                       ) : item.dersGunuMu ? (
-                        <span className="text-[9px] font-bold text-amber-600">
+                        <span className="text-[9px] font-extrabold text-amber-700 bg-amber-200/60 px-1 rounded">
                           DERS
                         </span>
                       ) : (
@@ -764,13 +1019,25 @@ export default function OgrenciYonetimPage() {
 
             <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-slate-700 text-xs font-bold flex justify-between items-center">
               <span>Grup Tanımlı Ders Günleri:</span>
-              <span className="font-black text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1 rounded-xl text-[11px]">
-                {seciliOgrenci.grup}
+              <span className="font-black text-amber-700 bg-amber-100 border border-amber-300 px-3 py-1 rounded-xl text-[11px]">
+                {seciliGrupNesnesi?.dersGunleri?.join(", ") ||
+                  seciliOgrenci.grup}
               </span>
             </div>
           </div>
 
           <div className="lg:col-span-5 space-y-6">
+            <div className="bg-white p-6 rounded-3xl border-2 border-slate-200 shadow-xl space-y-2">
+              <span className="text-xs font-black uppercase text-slate-400 flex items-center gap-1.5">
+                <span>🏆</span> Cimnastik Grubu
+              </span>
+              <div className="p-3 bg-slate-900 text-white rounded-2xl">
+                <p className="text-sm font-black text-amber-400">
+                  📌 {seciliOgrenci.grup || "Grup Tanımlı Değil"}
+                </p>
+              </div>
+            </div>
+
             <div className="bg-white p-6 rounded-3xl border-2 border-slate-200 shadow-xl space-y-3">
               <h3 className="text-base font-black text-slate-900 border-b border-slate-200 pb-2 flex items-center gap-2">
                 <span>👨‍👩‍👧</span> Veli İletişim Bilgileri
@@ -792,358 +1059,770 @@ export default function OgrenciYonetimPage() {
                     </div>
                     <button
                       onClick={() =>
-                        whatsappDavetGonder(v.telefon, seciliOgrenci.adSoyad)
+                        whatsappDavetGonder(
+                          v.telefon,
+                          seciliOgrenci.adSoyad,
+                          seciliOgrenci.grup,
+                        )
                       }
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-3 py-1.5 rounded-xl text-xs shadow-md"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-3 py-1.5 rounded-xl text-xs shadow-md cursor-pointer flex items-center gap-1"
                     >
-                      📲 WhatsApp
+                      <span>📲</span>
+                      <span>Grup Daveti Gönder</span>
                     </button>
                   </div>
                 ))}
               </div>
             </div>
-
-            {/* 📜 ŞİMDİKİ BULUNDUĞU GRUP ADI EKLEMENMİŞ GRUP TRANSFER GEÇMİŞİ KARTI */}
-            <div className="bg-white p-6 rounded-3xl border-2 border-slate-200 shadow-xl space-y-4">
-              <div className="border-b border-slate-200 pb-3 flex justify-between items-center">
-                <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                  <span>📜</span> Grup Transfer Geçmişi
-                </h3>
-              </div>
-
-              {/* 📍 ŞİMDİKİ BULUNDUĞU GRUP ADI (VURGULU BİLGİ KARTI) */}
-              <div className="p-3 bg-slate-900 text-white rounded-2xl space-y-1">
-                <p className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
-                  Şimdiki Bulunduğu Grup:
-                </p>
-                <p className="text-xs font-black text-white">
-                  📌 {seciliOgrenci.grup}
-                </p>
-              </div>
-
-              {!seciliOgrenci.grupTransferGecmisi ||
-              seciliOgrenci.grupTransferGecmisi.length === 0 ? (
-                <p className="text-xs font-bold text-slate-400 py-1">
-                  Henüz grup transferi yapılmadı.
-                </p>
-              ) : (
-                <div className="space-y-2 max-h-40 overflow-y-auto pt-1">
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
-                    Geçmiş Transferler:
-                  </p>
-                  {seciliOgrenci.grupTransferGecmisi.map((t, idx) => (
-                    <div
-                      key={idx}
-                      className="p-2.5 bg-amber-50 rounded-xl text-xs font-bold border border-amber-200 flex justify-between items-center"
-                    >
-                      <span>
-                        {t.eskiGrup} ➔{" "}
-                        <strong className="text-blue-700">{t.yeniGrup}</strong>
-                      </span>
-                      <span className="text-[10px] font-mono text-slate-500">
-                        {new Date(t.tarih).toLocaleDateString("tr-TR")}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
-        {/* ✏️ ÖĞRENCİ VE VELİ BİLGİLERİNİ EKSİKSİZ GÜNCELLEME MODALI */}
+        <div className="bg-white p-6 rounded-3xl border-2 border-slate-200 shadow-xl mt-6 w-full">
+          <h3 className="text-lg font-black text-slate-900 border-b border-slate-200 pb-3 flex items-center gap-2">
+            <span>📜</span> Kronolojik İşlem & Değişiklik Geçmişi
+          </h3>
+
+          {!seciliOgrenci.islemGecmisi ||
+          seciliOgrenci.islemGecmisi.length === 0 ? (
+            <p className="text-sm font-bold text-slate-400 py-6 text-center">
+              Sistemde kayıtlı bir güncelleme veya işlem geçmişi
+              bulunmamaktadır.
+            </p>
+          ) : (
+            <div className="space-y-3 mt-4 max-h-80 overflow-y-auto pr-2">
+              {seciliOgrenci.islemGecmisi
+                .slice()
+                .reverse()
+                .map((log, idx) => {
+                  const d = new Date(log.tarih);
+                  const tarihStr =
+                    d.toLocaleDateString("tr-TR") +
+                    " " +
+                    d.toLocaleTimeString("tr-TR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    });
+
+                  return (
+                    <div
+                      key={idx}
+                      className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row justify-between sm:items-center gap-2 shadow-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="bg-amber-100 text-amber-900 text-[10px] font-black px-2.5 py-1 rounded border border-amber-200 uppercase whitespace-nowrap">
+                          {log.islemTipi || "GÜNCELLEME"}
+                        </span>
+                        <span className="font-bold text-xs text-slate-800 leading-relaxed">
+                          {log.detay}
+                        </span>
+                      </div>
+                      <span className="text-xs font-mono font-bold text-slate-400 whitespace-nowrap">
+                        🕒 {tarihStr}
+                      </span>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </div>
+
+        {/* ✏️ TÜM BİLGİLERİN GÜNCELLENEBİLECEĞİ DÜZENLEME MODALI */}
         {duzenleModalAcik && (
           <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl border-2 border-slate-900 max-w-xl w-full p-6 shadow-2xl space-y-4 text-slate-900 relative max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-3xl border-2 border-slate-900 max-w-3xl w-full p-6 shadow-2xl space-y-5 text-slate-900 relative max-h-[90vh] overflow-y-auto">
               <button
                 onClick={() => setDuzenleModalAcik(false)}
-                className="absolute top-4 right-4 font-black text-xl text-slate-400 hover:text-slate-900"
+                className="absolute top-4 right-4 font-black text-xl text-slate-400 hover:text-slate-900 cursor-pointer"
               >
                 ✕
               </button>
               <h3 className="text-lg font-black border-b border-slate-200 pb-2">
-                ✏️ Öğrenci ve Veli Bilgilerini Güncelle
+                ✏️ Öğrencinin Tüm Kayıt Bİlgilerini Güncelle
               </h3>
 
               <form onSubmit={ogrenciGuncelle} className="space-y-4">
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
-                    Öğrenci Ad Soyad *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={duzenleForm.adSoyad || ""}
-                    onChange={(e) =>
-                      setDuzenleForm({
-                        ...duzenleForm,
-                        adSoyad: e.target.value,
-                      })
-                    }
-                    className="w-full p-2.5 rounded-xl border border-slate-300 font-bold text-xs bg-slate-50 outline-none"
-                  />
+                {/* FOTOĞRAF DEĞİŞTİRME */}
+                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-4">
+                  {fotoUrl ? (
+                    <img
+                      src={fotoUrl}
+                      alt="Profil Fotoğrafı"
+                      className="w-14 h-14 rounded-2xl object-cover border-2 border-slate-900"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-2xl bg-slate-200 border-2 border-dashed border-slate-400 flex items-center justify-center text-[10px] text-slate-500 font-bold text-center">
+                      Fotoğraf Yok
+                    </div>
+                  )}
+                  <div>
+                    <label className="cursor-pointer bg-slate-900 hover:bg-slate-800 text-white font-black px-3 py-1.5 rounded-xl text-xs inline-block shadow">
+                      📷 Fotoğraf Değiştir
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={resimYukle}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
                 </div>
 
-                {/* VELİ GÜNCELLEME ALANI */}
-                <div className="p-4 bg-slate-50 rounded-2xl border-2 border-slate-200 space-y-3">
-                  <p className="text-xs font-black uppercase text-slate-800">
-                    👨‍👩‍👧 Veli Bilgileri
+                {/* 1. SPORCU BİLGİLERİ */}
+                <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                  <p className="text-xs font-black text-amber-700 uppercase border-b pb-1 border-amber-200">
+                    👤 1. SPORCU BİLGİLERİ
                   </p>
-
-                  <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                      Ad Soyad *
+                    </label>
                     <input
                       type="text"
-                      placeholder="Veli Adı"
-                      value={duzenleGeciciVeli.adSoyad}
+                      required
+                      value={duzenleForm.adSoyad || ""}
                       onChange={(e) =>
-                        setDuzenleGeciciVeli({
-                          ...duzenleGeciciVeli,
+                        setDuzenleForm({
+                          ...duzenleForm,
                           adSoyad: e.target.value,
                         })
                       }
-                      className="col-span-2 p-2 rounded-xl border border-slate-300 text-xs font-bold bg-white"
+                      className="w-full p-2.5 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
                     />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                        Doğum Tarihi
+                      </label>
+                      <input
+                        type="text"
+                        value={duzenleForm.dogumTarihi || ""}
+                        onChange={(e) =>
+                          setDuzenleForm({
+                            ...duzenleForm,
+                            dogumTarihi: e.target.value,
+                          })
+                        }
+                        className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                        Yaş
+                      </label>
+                      <input
+                        type="text"
+                        value={duzenleForm.yas || ""}
+                        onChange={(e) =>
+                          setDuzenleForm({
+                            ...duzenleForm,
+                            yas: e.target.value,
+                          })
+                        }
+                        className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                        T.C. Kimlik No
+                      </label>
+                      <input
+                        type="text"
+                        value={duzenleForm.tcKimlikNo || ""}
+                        onChange={(e) =>
+                          setDuzenleForm({
+                            ...duzenleForm,
+                            tcKimlikNo: e.target.value,
+                          })
+                        }
+                        className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                        Kan Grubu
+                      </label>
+                      <select
+                        value={duzenleForm.kanGrubu || "Bilinmiyor"}
+                        onChange={(e) =>
+                          setDuzenleForm({
+                            ...duzenleForm,
+                            kanGrubu: e.target.value,
+                          })
+                        }
+                        className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none cursor-pointer"
+                      >
+                        <option value="Bilinmiyor">Bilinmiyor</option>
+                        <option value="0 Rh+">0 Rh+</option>
+                        <option value="0 Rh-">0 Rh-</option>
+                        <option value="A Rh+">A Rh+</option>
+                        <option value="A Rh-">A Rh-</option>
+                        <option value="B Rh+">B Rh+</option>
+                        <option value="B Rh-">B Rh-</option>
+                        <option value="AB Rh+">AB Rh+</option>
+                        <option value="AB Rh-">AB Rh-</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                        Lisans Durumu
+                      </label>
+                      <select
+                        value={duzenleForm.lisansliMi ? "Evet" : "Hayır"}
+                        onChange={(e) =>
+                          setDuzenleForm({
+                            ...duzenleForm,
+                            lisansliMi: e.target.value === "Evet",
+                          })
+                        }
+                        className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none cursor-pointer"
+                      >
+                        <option value="Hayır">Lisanssız Sporcu</option>
+                        <option value="Evet">✓ Lisanslı Sporcu</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. EĞİTİM & AİDAT BİLGİLERİ */}
+                <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                  <p className="text-xs font-black text-blue-700 uppercase border-b pb-1 border-blue-200">
+                    🎓 2. EĞİTİM & AİDAT BİLGİLERİ
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                        Okul / Anaokulu
+                      </label>
+                      <input
+                        type="text"
+                        value={duzenleForm.okulAnaokulu || ""}
+                        onChange={(e) =>
+                          setDuzenleForm({
+                            ...duzenleForm,
+                            okulAnaokulu: e.target.value,
+                          })
+                        }
+                        className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                        Sınıfı
+                      </label>
+                      <input
+                        type="text"
+                        value={duzenleForm.sinifi || ""}
+                        onChange={(e) =>
+                          setDuzenleForm({
+                            ...duzenleForm,
+                            sinifi: e.target.value,
+                          })
+                        }
+                        className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                      Cimnastik Grubu
+                    </label>
                     <select
-                      value={duzenleGeciciVeli.yakinlikDerecesi}
-                      onChange={(e) =>
-                        setDuzenleGeciciVeli({
-                          ...duzenleGeciciVeli,
-                          yakinlikDerecesi: e.target.value,
-                        })
+                      value={
+                        duzenleForm.grup ||
+                        (typeof gruplar[0] === "object"
+                          ? gruplar[0]?.ad
+                          : gruplar[0]) ||
+                        ""
                       }
-                      className="p-2 rounded-xl border border-slate-300 text-xs font-bold bg-white"
+                      onChange={(e) =>
+                        setDuzenleForm({ ...duzenleForm, grup: e.target.value })
+                      }
+                      className="w-full p-2.5 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none cursor-pointer"
                     >
-                      <option value="Anne">Anne</option>
-                      <option value="Baba">Baba</option>
-                      <option value="Vasi">Vasi</option>
+                      {gruplar.map((g, idx) => {
+                        const grupAd = typeof g === "object" ? g.ad : g;
+                        return (
+                          <option key={idx} value={grupAd}>
+                            {grupAd}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                        Aylık Aidat Tutarı (₺) [100 TL Adım]
+                      </label>
+                      <input
+                        type="number"
+                        step="100"
+                        value={duzenleForm.aylikUcret || 2000}
+                        onChange={(e) =>
+                          setDuzenleForm({
+                            ...duzenleForm,
+                            aylikUcret: Number(e.target.value),
+                          })
+                        }
+                        className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                        Aylık Ödeme Günü (1-31)
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="31"
+                        value={duzenleForm.odemeGunu || 1}
+                        onChange={(e) =>
+                          setDuzenleForm({
+                            ...duzenleForm,
+                            odemeGunu: Number(e.target.value),
+                          })
+                        }
+                        className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. VELİ İLETİŞİM & ADRES */}
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                  <p className="text-xs font-black uppercase text-slate-800 border-b pb-1 border-slate-200">
+                    👨‍👩‍👧 3. VELİ İLETİŞİM & ADRES BİLGİLERİ
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                        Veli E-posta
+                      </label>
+                      <input
+                        type="email"
+                        value={duzenleForm.veliEposta || ""}
+                        onChange={(e) =>
+                          setDuzenleForm({
+                            ...duzenleForm,
+                            veliEposta: e.target.value,
+                          })
+                        }
+                        className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                        Ev / İş Adresi
+                      </label>
+                      <input
+                        type="text"
+                        value={duzenleForm.veliAdres || ""}
+                        onChange={(e) =>
+                          setDuzenleForm({
+                            ...duzenleForm,
+                            veliAdres: e.target.value,
+                          })
+                        }
+                        className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-white rounded-xl border border-slate-300 space-y-2">
+                    <p className="text-[11px] font-black uppercase text-slate-700">
+                      Mevcut Veliler & Yeni Veli Ekle:
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <input
+                        type="text"
+                        placeholder="Veli Adı"
+                        value={duzenleGeciciVeli.adSoyad}
+                        onChange={(e) =>
+                          setDuzenleGeciciVeli({
+                            ...duzenleGeciciVeli,
+                            adSoyad: e.target.value,
+                          })
+                        }
+                        className="col-span-2 p-1.5 rounded-lg border border-slate-300 text-xs font-bold bg-white"
+                      />
+                      <select
+                        value={duzenleGeciciVeli.yakinlikDerecesi}
+                        onChange={(e) =>
+                          setDuzenleGeciciVeli({
+                            ...duzenleGeciciVeli,
+                            yakinlikDerecesi: e.target.value,
+                          })
+                        }
+                        className="p-1.5 rounded-lg border border-slate-300 text-xs font-bold bg-white cursor-pointer"
+                      >
+                        <option value="Anne">Anne</option>
+                        <option value="Baba">Baba</option>
+                        <option value="Vasi">Vasi</option>
+                      </select>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Telefon (05xxxxxxxxx)"
+                        value={duzenleGeciciVeli.telefon}
+                        onChange={(e) =>
+                          setDuzenleGeciciVeli({
+                            ...duzenleGeciciVeli,
+                            telefon: e.target.value,
+                          })
+                        }
+                        className="flex-1 p-1.5 rounded-lg border border-slate-300 text-xs font-bold bg-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={duzenleVeliEkle}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-3 py-1.5 rounded-lg text-xs cursor-pointer"
+                      >
+                        + Veli Ekle
+                      </button>
+                    </div>
+
+                    {(duzenleForm.veliListesi || []).length > 0 && (
+                      <div className="space-y-1.5 pt-2 border-t border-slate-200">
+                        {duzenleForm.veliListesi.map((v, idx) => (
+                          <div
+                            key={idx}
+                            className="p-1.5 bg-slate-50 rounded-lg border border-slate-200 flex justify-between items-center text-xs"
+                          >
+                            <span>
+                              <strong>{v.adSoyad}</strong> ({v.yakinlikDerecesi}
+                              ) - {v.telefon}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => duzenleVeliCikar(idx)}
+                              className="text-rose-600 font-black text-sm px-1 cursor-pointer"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 4. SAĞLIK BİLGİLERİ */}
+                <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                  <p className="text-xs font-black text-rose-700 uppercase border-b pb-1 border-rose-200">
+                    🩺 4. SAĞLIK BİLGİLERİ
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                        Sağlık Problemi?
+                      </label>
+                      <select
+                        value={duzenleForm.saglikProblemiVarMi || "Hayır"}
+                        onChange={(e) =>
+                          setDuzenleForm({
+                            ...duzenleForm,
+                            saglikProblemiVarMi: e.target.value,
+                          })
+                        }
+                        className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none cursor-pointer"
+                      >
+                        <option value="Hayır">Hayır</option>
+                        <option value="Evet">Evet</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                        Düzenli İlaç?
+                      </label>
+                      <select
+                        value={duzenleForm.duzenliIlacVarMi || "Hayır"}
+                        onChange={(e) =>
+                          setDuzenleForm({
+                            ...duzenleForm,
+                            duzenliIlacVarMi: e.target.value,
+                          })
+                        }
+                        className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none cursor-pointer"
+                      >
+                        <option value="Hayır">Hayır</option>
+                        <option value="Evet">Evet</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                        Alerji Durumu?
+                      </label>
+                      <select
+                        value={duzenleForm.alerjiVarMi || "Hayır"}
+                        onChange={(e) =>
+                          setDuzenleForm({
+                            ...duzenleForm,
+                            alerjiVarMi: e.target.value,
+                          })
+                        }
+                        className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none cursor-pointer"
+                      >
+                        <option value="Hayır">Hayır</option>
+                        <option value="Evet">Evet</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-1">
+                    {duzenleForm.saglikProblemiVarMi === "Evet" && (
+                      <input
+                        type="text"
+                        placeholder="Sağlık Problemi Açıklaması..."
+                        value={duzenleForm.saglikAciklama || ""}
+                        onChange={(e) =>
+                          setDuzenleForm({
+                            ...duzenleForm,
+                            saglikAciklama: e.target.value,
+                          })
+                        }
+                        className="w-full p-2 rounded-xl border border-rose-300 text-xs font-bold bg-white"
+                      />
+                    )}
+                    {duzenleForm.duzenliIlacVarMi === "Evet" && (
+                      <input
+                        type="text"
+                        placeholder="Düzenli İlaç Açıklaması..."
+                        value={duzenleForm.ilacAciklama || ""}
+                        onChange={(e) =>
+                          setDuzenleForm({
+                            ...duzenleForm,
+                            ilacAciklama: e.target.value,
+                          })
+                        }
+                        className="w-full p-2 rounded-xl border border-rose-300 text-xs font-bold bg-white"
+                      />
+                    )}
+                    {duzenleForm.alerjiVarMi === "Evet" && (
+                      <input
+                        type="text"
+                        placeholder="Alerji Açıklaması..."
+                        value={duzenleForm.alerjiAciklama || ""}
+                        onChange={(e) =>
+                          setDuzenleForm({
+                            ...duzenleForm,
+                            alerjiAciklama: e.target.value,
+                          })
+                        }
+                        className="w-full p-2 rounded-xl border border-rose-300 text-xs font-bold bg-white"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* 5, 6, 7. ANTRENMAN & HEDEFLER */}
+                <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                  <p className="text-xs font-black text-emerald-800 uppercase border-b pb-1 border-emerald-200">
+                    🎯 5, 6 & 7. ANTRENMAN & SPORCU HEDEFLERİ
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                        Haftalık Ders Gün Sayısı
+                      </label>
+                      <select
+                        value={duzenleForm.haftalikGunSayisi || "2 GÜN"}
+                        onChange={(e) =>
+                          setDuzenleForm({
+                            ...duzenleForm,
+                            haftalikGunSayisi: e.target.value,
+                          })
+                        }
+                        className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none cursor-pointer"
+                      >
+                        <option value="1 GÜN">1 GÜN</option>
+                        <option value="2 GÜN">2 GÜN</option>
+                        <option value="3 GÜN VE ÜZERİ">3 GÜN VE ÜZERİ</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                        Cimnastik Hedefi
+                      </label>
+                      <select
+                        value={duzenleForm.cimnastikHedefi || "Hobi Olarak"}
+                        onChange={(e) =>
+                          setDuzenleForm({
+                            ...duzenleForm,
+                            cimnastikHedefi: e.target.value,
+                          })
+                        }
+                        className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none cursor-pointer"
+                      >
+                        <option value="Hobi Olarak">Hobi Olarak</option>
+                        <option value="Performans & Altyapı">
+                          Performans & Altyapı
+                        </option>
+                        <option value="Yarışmacı Düzey">Yarışmacı Düzey</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                      Sporcunun Hedefleri (Çoklu Seçim):
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                      {HEDEF_SECENEKLERI.map((hedef, idx) => {
+                        const secili = (duzenleForm.hedefler || []).includes(
+                          hedef,
+                        );
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => hedefToggle(hedef, true)}
+                            className={`p-2 rounded-xl text-[11px] font-bold border transition-all text-left flex items-center justify-between cursor-pointer ${
+                              secili
+                                ? "bg-amber-400 text-slate-950 border-amber-500 font-black"
+                                : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
+                            }`}
+                          >
+                            <span>{hedef}</span>
+                            <span>{secili ? "✓" : "+"}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 8, 9, 10. DİĞER DETAYLAR */}
+                <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                  <p className="text-xs font-black text-indigo-800 uppercase border-b pb-1 border-indigo-200">
+                    📢 8, 9 & 10. DİĞER DETAYLAR
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                        Bizi Nereden Duydunuz?
+                      </label>
+                      <select
+                        value={duzenleForm.duydugunuzYer || "Tavsiye"}
+                        onChange={(e) =>
+                          setDuzenleForm({
+                            ...duzenleForm,
+                            duydugunuzYer: e.target.value,
+                          })
+                        }
+                        className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none cursor-pointer"
+                      >
+                        <option value="Tavsiye">Tavsiye / Tanıdık</option>
+                        <option value="Instagram / Sosyal Medya">
+                          Instagram / Sosyal Medya
+                        </option>
+                        <option value="Google Arama">Google / İnternet</option>
+                        <option value="Afiş / Bordo">Afiş / Tabela</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                        Fotoğraf / Video İzni
+                      </label>
+                      <select
+                        value={duzenleForm.fotografIznı || "İzin Veriyorum"}
+                        onChange={(e) =>
+                          setDuzenleForm({
+                            ...duzenleForm,
+                            fotografIznı: e.target.value,
+                          })
+                        }
+                        className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none cursor-pointer"
+                      >
+                        <option value="İzin Veriyorum">İzin Veriyorum</option>
+                        <option value="İzin Vermiyorum">İzin Vermiyorum</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                      Ek Notlar & Özel Açıklamalar
+                    </label>
                     <input
                       type="text"
-                      placeholder="Telefon (05xxxxxxxxx)"
-                      value={duzenleGeciciVeli.telefon}
+                      value={duzenleForm.ekBilgiler || ""}
                       onChange={(e) =>
-                        setDuzenleGeciciVeli({
-                          ...duzenleGeciciVeli,
-                          telefon: e.target.value,
+                        setDuzenleForm({
+                          ...duzenleForm,
+                          ekBilgiler: e.target.value,
                         })
                       }
-                      className="flex-1 p-2 rounded-xl border border-slate-300 text-xs font-bold bg-white"
+                      className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
                     />
+                  </div>
+
+                  <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-300">
+                    <label className="block text-[10px] font-black uppercase text-amber-900 mb-1">
+                      📡 NFC Kart ID
+                    </label>
+                    <input
+                      type="text"
+                      value={duzenleForm.nfcKartId || ""}
+                      onChange={(e) =>
+                        setDuzenleForm({
+                          ...duzenleForm,
+                          nfcKartId: e.target.value,
+                        })
+                      }
+                      className="w-full p-2 rounded-lg border border-amber-400 font-extrabold text-xs bg-white outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-200 flex flex-wrap justify-between items-center gap-2">
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={duzenleVeliEkle}
-                      className="bg-emerald-600 text-white font-black px-3 py-2 rounded-xl text-xs"
+                      onClick={modalOgrenciDondur}
+                      className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-black px-4 py-2.5 rounded-xl text-xs shadow-sm transition-all cursor-pointer"
                     >
-                      + Ekle
+                      ⏸ Kaydı Dondur
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={modalOgrenciSil}
+                      className="bg-rose-100 hover:bg-rose-200 text-rose-700 border border-rose-300 font-black px-4 py-2.5 rounded-xl text-xs shadow-sm transition-all cursor-pointer"
+                    >
+                      🗑️ Kaydı Sil
                     </button>
                   </div>
 
-                  <div className="space-y-2 pt-2 border-t border-slate-200">
-                    <p className="text-[10px] font-black text-slate-500 uppercase">
-                      Kayıtlı Veliler:
-                    </p>
-                    {duzenleForm.veliListesi &&
-                      duzenleForm.veliListesi.map((v, idx) => (
-                        <div
-                          key={idx}
-                          className="p-2.5 bg-white rounded-xl border border-slate-200 flex justify-between items-center text-xs"
-                        >
-                          <div className="space-y-1 flex-1 mr-2">
-                            <input
-                              type="text"
-                              value={v.adSoyad}
-                              onChange={(e) => {
-                                const yeniList = [...duzenleForm.veliListesi];
-                                yeniList[idx].adSoyad = e.target.value;
-                                setDuzenleForm({
-                                  ...duzenleForm,
-                                  veliListesi: yeniList,
-                                });
-                              }}
-                              className="w-full p-1 border rounded text-xs font-bold"
-                            />
-                            <div className="flex gap-1">
-                              <select
-                                value={v.yakinlikDerecesi}
-                                onChange={(e) => {
-                                  const yeniList = [...duzenleForm.veliListesi];
-                                  yeniList[idx].yakinlikDerecesi =
-                                    e.target.value;
-                                  setDuzenleForm({
-                                    ...duzenleForm,
-                                    veliListesi: yeniList,
-                                  });
-                                }}
-                                className="p-1 border rounded text-[10px] font-bold"
-                              >
-                                <option value="Anne">Anne</option>
-                                <option value="Baba">Baba</option>
-                                <option value="Vasi">Vasi</option>
-                              </select>
-
-                              <input
-                                type="text"
-                                value={v.telefon}
-                                onChange={(e) => {
-                                  const yeniList = [...duzenleForm.veliListesi];
-                                  yeniList[idx].telefon = e.target.value;
-                                  setDuzenleForm({
-                                    ...duzenleForm,
-                                    veliListesi: yeniList,
-                                  });
-                                }}
-                                className="flex-1 p-1 border rounded text-xs font-bold"
-                              />
-                            </div>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => duzenleVeliCikar(idx)}
-                            className="text-rose-600 font-black text-sm px-2"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
-                      Kan Grubu
-                    </label>
-                    <select
-                      value={duzenleForm.kanGrubu || "0 Rh+"}
-                      onChange={(e) =>
-                        setDuzenleForm({
-                          ...duzenleForm,
-                          kanGrubu: e.target.value,
-                        })
-                      }
-                      className="w-full p-2.5 rounded-xl border border-slate-300 font-bold text-xs bg-slate-50 outline-none"
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDuzenleModalAcik(false)}
+                      className="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer"
                     >
-                      <option value="0 Rh+">0 Rh+</option>
-                      <option value="0 Rh-">0 Rh-</option>
-                      <option value="A Rh+">A Rh+</option>
-                      <option value="A Rh-">A Rh-</option>
-                      <option value="B Rh+">B Rh+</option>
-                      <option value="AB Rh+">AB Rh+</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
-                      Lisans Durumu
-                    </label>
-                    <select
-                      value={duzenleForm.lisansliMi ? "true" : "false"}
-                      onChange={(e) =>
-                        setDuzenleForm({
-                          ...duzenleForm,
-                          lisansliMi: e.target.value === "true",
-                        })
-                      }
-                      className="w-full p-2.5 rounded-xl border border-slate-300 font-bold text-xs bg-slate-50 outline-none"
+                      İptal
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-5 py-2.5 rounded-xl text-xs font-black bg-amber-400 hover:bg-amber-500 text-slate-950 shadow-md cursor-pointer"
                     >
-                      <option value="false">Yok</option>
-                      <option value="true">Lisanslı</option>
-                    </select>
+                      Değişiklikleri Kaydet
+                    </button>
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
-                    Cimnastik Grubu
-                  </label>
-                  <select
-                    value={duzenleForm.grup || gruplar[0]}
-                    onChange={(e) =>
-                      setDuzenleForm({ ...duzenleForm, grup: e.target.value })
-                    }
-                    className="w-full p-2.5 rounded-xl border border-slate-300 font-bold text-xs bg-slate-50 outline-none"
-                  >
-                    {gruplar.map((g, idx) => (
-                      <option key={idx} value={g}>
-                        {g}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
-                      Aylık Ücret (₺)
-                    </label>
-                    <input
-                      type="number"
-                      value={duzenleForm.aylikUcret || 2000}
-                      onChange={(e) =>
-                        setDuzenleForm({
-                          ...duzenleForm,
-                          aylikUcret: Number(e.target.value),
-                        })
-                      }
-                      className="w-full p-2.5 rounded-xl border border-slate-300 font-bold text-xs bg-slate-50 outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
-                      Ödeme Günü
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="31"
-                      value={duzenleForm.odemeGunu || 1}
-                      onChange={(e) =>
-                        setDuzenleForm({
-                          ...duzenleForm,
-                          odemeGunu: Number(e.target.value),
-                        })
-                      }
-                      className="w-full p-2.5 rounded-xl border border-slate-300 font-bold text-xs bg-slate-50 outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
-                    NFC Kart ID
-                  </label>
-                  <input
-                    type="text"
-                    value={duzenleForm.nfcKartId || ""}
-                    onChange={(e) =>
-                      setDuzenleForm({
-                        ...duzenleForm,
-                        nfcKartId: e.target.value,
-                      })
-                    }
-                    className="w-full p-2.5 rounded-xl border border-slate-300 font-bold text-xs bg-slate-50 outline-none"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
-                  <button
-                    type="button"
-                    onClick={() => setDuzenleModalAcik(false)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-200"
-                  >
-                    İptal
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2 rounded-xl text-xs font-black bg-amber-400 hover:bg-amber-500 shadow-md"
-                  >
-                    Tüm Değişiklikleri Kaydet
-                  </button>
                 </div>
               </form>
             </div>
@@ -1153,22 +1832,20 @@ export default function OgrenciYonetimPage() {
     );
   }
 
-  // 🟢 ÖĞRENCİ LİSTESİ VE YENİ KAYIT EKRANI
+  // 🟢 ÖĞRENCİ LİSTESİ VE EKSİKSİZ YENİ KAYIT EKRANI
   return (
-    <div className="space-y-8 text-slate-900">
-      {/* BAŞLIK & EXCEL BUTONU */}
+    <div className="space-y-8 text-slate-900 font-sans">
       <div className="bg-white p-6 rounded-3xl border-2 border-slate-200 shadow-xl text-slate-900 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-black tracking-wide">
             Öğrenci Yönetimi & Kayıt Paneli
           </h1>
           <p className="text-xs font-bold text-slate-500 mt-0.5">
-            Öğrenci Kaydı, Toplu Excel İçe Aktarma ve Arama Paneli
+            Öğrenci Kaydı, İnceleme ve Kayıt Yönetimi
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          {/* 📁 DONDURULANLAR & ARŞİV YÖNLENDİRME BUTONU */}
           <Link
             href="/dashboard/ogrenciler/arsiv"
             className="bg-slate-800 hover:bg-slate-900 text-amber-400 border border-slate-700 font-black px-4 py-2.5 rounded-2xl text-xs flex items-center gap-2 shadow-lg transition-all"
@@ -1176,201 +1853,601 @@ export default function OgrenciYonetimPage() {
             <span>📁</span>
             <span>Dondurulanlar & Arşiv</span>
           </Link>
-
-          <button
-            onClick={() => setExcelModalAcik(true)}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-4 py-2.5 rounded-2xl text-xs flex items-center gap-2 shadow-lg transition-all"
-          >
-            <span>📊</span>
-            <span>Excel'den Toplu Öğrenci Yükle</span>
-          </button>
-
-          <div className="flex items-center gap-2 bg-slate-100 p-2 rounded-2xl border border-slate-300">
-            <input
-              type="text"
-              placeholder="+ Yeni Grup..."
-              value={yeniGrupAdi}
-              onChange={(e) => setYeniGrupAdi(e.target.value)}
-              className="p-2 text-xs font-bold bg-white rounded-xl border border-slate-300 outline-none text-slate-900"
-            />
-            <button
-              onClick={yeniGrupEkle}
-              className="bg-[#0F172A] text-amber-400 font-black px-3 py-2 rounded-xl text-xs"
-            >
-              Grup Oluştur
-            </button>
-          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* SOL: FORMLAR */}
-        <div className="lg:col-span-5 bg-white p-6 rounded-3xl border-2 border-slate-200 shadow-xl text-slate-900 space-y-4">
-          <h2 className="text-lg font-black border-b border-slate-200 pb-3">
-            📝 Yeni Öğrenci Kaydı
+        {/* SOL: EKSİKSİZ KAYIT FORMU */}
+        <div className="lg:col-span-6 bg-white p-6 rounded-3xl border-2 border-slate-200 shadow-xl text-slate-900 space-y-5">
+          <h2 className="text-lg font-black border-b border-slate-200 pb-3 flex items-center justify-between">
+            <span>📝 Yeni Öğrenci Kaydı</span>
+            <span className="text-[10px] bg-amber-100 text-amber-900 px-2.5 py-1 rounded-lg font-bold">
+              Tüm Alanlar Aktif
+            </span>
           </h2>
 
-          <form onSubmit={yeniOgrenciKaydet} className="space-y-4">
-            <div>
-              <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
-                Öğrenci Ad Soyad *
-              </label>
-              <input
-                type="text"
-                required
-                value={form.adSoyad}
-                onChange={(e) => setForm({ ...form, adSoyad: e.target.value })}
-                placeholder="Örn: Ela Yılmaz"
-                className="w-full p-2.5 rounded-xl border-2 border-slate-200 font-bold text-xs bg-slate-50 outline-none"
-              />
+          <form onSubmit={yeniOgrenciKaydet} className="space-y-5">
+            {/* FOTOĞRAF YÜKLEME */}
+            <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-4">
+              {fotoUrl ? (
+                <img
+                  src={fotoUrl}
+                  alt="Profil Fotoğrafı"
+                  className="w-14 h-14 rounded-2xl object-cover border-2 border-slate-900"
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-2xl bg-slate-200 border-2 border-dashed border-slate-400 flex items-center justify-center text-[10px] text-slate-500 font-bold text-center">
+                  Fotoğraf Yok
+                </div>
+              )}
+              <div>
+                <label className="cursor-pointer bg-slate-900 hover:bg-slate-800 text-white font-black px-3 py-1.5 rounded-xl text-xs inline-block shadow">
+                  📷 Fotoğraf Seç
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={resimYukle}
+                    className="hidden"
+                  />
+                </label>
+              </div>
             </div>
 
-            <div className="p-4 bg-slate-50 rounded-2xl border-2 border-slate-200 space-y-3">
-              <p className="text-xs font-black uppercase text-slate-800">
-                👨‍👩‍👧 Veli Bilgisi Ekle
+            {/* 1. SPORCU BİLGİLERİ */}
+            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+              <p className="text-xs font-black text-amber-700 uppercase border-b pb-1 border-amber-200">
+                👤 1. SPORCU BİLGİLERİ
               </p>
-              <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                  Ad Soyad *
+                </label>
                 <input
                   type="text"
-                  placeholder="Veli Adı"
-                  value={geciciVeli.adSoyad}
+                  required
+                  value={form.adSoyad}
                   onChange={(e) =>
-                    setGeciciVeli({ ...geciciVeli, adSoyad: e.target.value })
+                    setForm({ ...form, adSoyad: e.target.value })
                   }
-                  className="col-span-2 p-2 rounded-xl border border-slate-300 text-xs font-bold bg-white"
+                  placeholder="Örn: Zeynep Asel KAN"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
                 />
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                    Doğum Tarihi
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="GG/AA/YYYY"
+                    value={form.dogumTarihi}
+                    onChange={(e) =>
+                      setForm({ ...form, dogumTarihi: e.target.value })
+                    }
+                    className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                    Yaş
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Örn: 7"
+                    value={form.yas}
+                    onChange={(e) => setForm({ ...form, yas: e.target.value })}
+                    className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                    T.C. Kimlik No
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="11 haneli"
+                    value={form.tcKimlikNo}
+                    onChange={(e) =>
+                      setForm({ ...form, tcKimlikNo: e.target.value })
+                    }
+                    className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                    Kan Grubu
+                  </label>
+                  <select
+                    value={form.kanGrubu}
+                    onChange={(e) =>
+                      setForm({ ...form, kanGrubu: e.target.value })
+                    }
+                    className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none cursor-pointer"
+                  >
+                    <option value="Bilinmiyor">Bilinmiyor</option>
+                    <option value="0 Rh+">0 Rh+</option>
+                    <option value="0 Rh-">0 Rh-</option>
+                    <option value="A Rh+">A Rh+</option>
+                    <option value="A Rh-">A Rh-</option>
+                    <option value="B Rh+">B Rh+</option>
+                    <option value="B Rh-">B Rh-</option>
+                    <option value="AB Rh+">AB Rh+</option>
+                    <option value="AB Rh-">AB Rh-</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                    Lisans Durumu
+                  </label>
+                  <select
+                    value={form.lisansliMi ? "Evet" : "Hayır"}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        lisansliMi: e.target.value === "Evet",
+                      })
+                    }
+                    className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none cursor-pointer"
+                  >
+                    <option value="Hayır">Lisanssız Sporcu</option>
+                    <option value="Evet">✓ Lisanslı Sporcu</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. EĞİTİM & AİDAT BİLGİLERİ */}
+            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+              <p className="text-xs font-black text-blue-700 uppercase border-b pb-1 border-blue-200">
+                🎓 2. EĞİTİM & AİDAT BİLGİLERİ
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                    Okul / Anaokulu
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Örn: Atatürk İÖO"
+                    value={form.okulAnaokulu}
+                    onChange={(e) =>
+                      setForm({ ...form, okulAnaokulu: e.target.value })
+                    }
+                    className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                    Sınıfı
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Örn: 2-B"
+                    value={form.sinifi}
+                    onChange={(e) =>
+                      setForm({ ...form, sinifi: e.target.value })
+                    }
+                    className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                  Cimnastik Grubu *
+                </label>
                 <select
-                  value={geciciVeli.yakinlikDerecesi}
-                  onChange={(e) =>
-                    setGeciciVeli({
-                      ...geciciVeli,
-                      yakinlikDerecesi: e.target.value,
-                    })
-                  }
-                  className="p-2 rounded-xl border border-slate-300 text-xs font-bold bg-white"
+                  value={form.grup}
+                  onChange={(e) => setForm({ ...form, grup: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none cursor-pointer"
                 >
-                  <option value="Anne">Anne</option>
-                  <option value="Baba">Baba</option>
-                  <option value="Vasi">Vasi</option>
+                  {gruplar.map((g, idx) => {
+                    const grupAd = typeof g === "object" ? g.ad : g;
+                    return (
+                      <option key={idx} value={grupAd}>
+                        {grupAd}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Telefon (05xxxxxxxxx)"
-                  value={geciciVeli.telefon}
-                  onChange={(e) =>
-                    setGeciciVeli({ ...geciciVeli, telefon: e.target.value })
-                  }
-                  className="flex-1 p-2 rounded-xl border border-slate-300 text-xs font-bold bg-white"
-                />
-                <button
-                  type="button"
-                  onClick={veliEkle}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-3 py-2 rounded-xl text-xs"
-                >
-                  + Veli Ekle
-                </button>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                    Aylık Aidat Tutarı (₺) [100 TL Adım]
+                  </label>
+                  <input
+                    type="number"
+                    step="100"
+                    placeholder="Örn: 2000"
+                    value={form.aylikUcret}
+                    onChange={(e) =>
+                      setForm({ ...form, aylikUcret: Number(e.target.value) })
+                    }
+                    className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                    Aylık Ödeme Günü (1-31)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={form.odemeGunu}
+                    onChange={(e) =>
+                      setForm({ ...form, odemeGunu: Number(e.target.value) })
+                    }
+                    className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 3. VELİ BİLGİLERİ & ADRES */}
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+              <p className="text-xs font-black uppercase text-slate-800 border-b pb-1 border-slate-200">
+                👨‍👩‍👧 3. VELİ İLETİŞİM & ADRES BİLGİLERİ
+              </p>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                    Veli E-posta
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="ornek@gmail.com"
+                    value={form.veliEposta}
+                    onChange={(e) =>
+                      setForm({ ...form, veliEposta: e.target.value })
+                    }
+                    className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                    Ev / İş Adresi
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Mahalle, Sokak No..."
+                    value={form.veliAdres}
+                    onChange={(e) =>
+                      setForm({ ...form, veliAdres: e.target.value })
+                    }
+                    className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
+                  />
+                </div>
               </div>
 
-              {eklenenVeliler.length > 0 && (
-                <div className="space-y-1.5 pt-2 border-t border-slate-200">
-                  {eklenenVeliler.map((v, idx) => (
-                    <div
-                      key={idx}
-                      className="p-2 bg-white rounded-xl border border-slate-200 flex justify-between items-center text-xs"
-                    >
-                      <span>
-                        <strong>{v.adSoyad}</strong> ({v.yakinlikDerecesi}) -{" "}
-                        {v.telefon}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => veliCikar(idx)}
-                        className="text-rose-600 font-black text-sm px-1"
+              <div className="p-3 bg-white rounded-xl border border-slate-300 space-y-2">
+                <p className="text-[11px] font-black uppercase text-slate-700">
+                  Veli Ekle (+):
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  <input
+                    type="text"
+                    placeholder="Veli Adı"
+                    value={geciciVeli.adSoyad}
+                    onChange={(e) =>
+                      setGeciciVeli({ ...geciciVeli, adSoyad: e.target.value })
+                    }
+                    className="col-span-2 p-1.5 rounded-lg border border-slate-300 text-xs font-bold bg-white"
+                  />
+                  <select
+                    value={geciciVeli.yakinlikDerecesi}
+                    onChange={(e) =>
+                      setGeciciVeli({
+                        ...geciciVeli,
+                        yakinlikDerecesi: e.target.value,
+                      })
+                    }
+                    className="p-1.5 rounded-lg border border-slate-300 text-xs font-bold bg-white cursor-pointer"
+                  >
+                    <option value="Anne">Anne</option>
+                    <option value="Baba">Baba</option>
+                    <option value="Vasi">Vasi</option>
+                  </select>
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Telefon (05xxxxxxxxx)"
+                    value={geciciVeli.telefon}
+                    onChange={(e) =>
+                      setGeciciVeli({ ...geciciVeli, telefon: e.target.value })
+                    }
+                    className="flex-1 p-1.5 rounded-lg border border-slate-300 text-xs font-bold bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={veliEkle}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-3 py-1.5 rounded-lg text-xs cursor-pointer"
+                  >
+                    + Ekle
+                  </button>
+                </div>
+
+                {eklenenVeliler.length > 0 && (
+                  <div className="space-y-1.5 pt-2 border-t border-slate-200">
+                    {eklenenVeliler.map((v, idx) => (
+                      <div
+                        key={idx}
+                        className="p-1.5 bg-slate-50 rounded-lg border border-slate-200 flex justify-between items-center text-xs"
                       >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
+                        <span>
+                          <strong>{v.adSoyad}</strong> ({v.yakinlikDerecesi}) -{" "}
+                          {v.telefon}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => veliCikar(idx)}
+                          className="text-rose-600 font-black text-sm px-1 cursor-pointer"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 4. SAĞLIK BİLGİLERİ */}
+            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+              <p className="text-xs font-black text-rose-700 uppercase border-b pb-1 border-rose-200">
+                🩺 4. SAĞLIK BİLGİLERİ
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                    Sağlık Problemi?
+                  </label>
+                  <select
+                    value={form.saglikProblemiVarMi}
+                    onChange={(e) =>
+                      setForm({ ...form, saglikProblemiVarMi: e.target.value })
+                    }
+                    className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none cursor-pointer"
+                  >
+                    <option value="Hayır">Hayır</option>
+                    <option value="Evet">Evet</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                    Düzenli İlaç?
+                  </label>
+                  <select
+                    value={form.duzenliIlacVarMi}
+                    onChange={(e) =>
+                      setForm({ ...form, duzenliIlacVarMi: e.target.value })
+                    }
+                    className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none cursor-pointer"
+                  >
+                    <option value="Hayır">Hayır</option>
+                    <option value="Evet">Evet</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                    Alerji Durumu?
+                  </label>
+                  <select
+                    value={form.alerjiVarMi}
+                    onChange={(e) =>
+                      setForm({ ...form, alerjiVarMi: e.target.value })
+                    }
+                    className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none cursor-pointer"
+                  >
+                    <option value="Hayır">Hayır</option>
+                    <option value="Evet">Evet</option>
+                  </select>
+                </div>
+              </div>
+
+              {(form.saglikProblemiVarMi === "Evet" ||
+                form.duzenliIlacVarMi === "Evet" ||
+                form.alerjiVarMi === "Evet") && (
+                <div className="space-y-2 pt-1">
+                  {form.saglikProblemiVarMi === "Evet" && (
+                    <input
+                      type="text"
+                      placeholder="Sağlık Problemi Açıklaması..."
+                      value={form.saglikAciklama}
+                      onChange={(e) =>
+                        setForm({ ...form, saglikAciklama: e.target.value })
+                      }
+                      className="w-full p-2 rounded-xl border border-rose-300 text-xs font-bold bg-white"
+                    />
+                  )}
+                  {form.duzenliIlacVarMi === "Evet" && (
+                    <input
+                      type="text"
+                      placeholder="Düzenli İlaç Açıklaması..."
+                      value={form.ilacAciklama}
+                      onChange={(e) =>
+                        setForm({ ...form, ilacAciklama: e.target.value })
+                      }
+                      className="w-full p-2 rounded-xl border border-rose-300 text-xs font-bold bg-white"
+                    />
+                  )}
+                  {form.alerjiVarMi === "Evet" && (
+                    <input
+                      type="text"
+                      placeholder="Alerji Açıklaması..."
+                      value={form.alerjiAciklama}
+                      onChange={(e) =>
+                        setForm({ ...form, alerjiAciklama: e.target.value })
+                      }
+                      className="w-full p-2 rounded-xl border border-rose-300 text-xs font-bold bg-white"
+                    />
+                  )}
                 </div>
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            {/* 5, 6, 7. ANTRENMAN & HEDEFLER */}
+            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+              <p className="text-xs font-black text-emerald-800 uppercase border-b pb-1 border-emerald-200">
+                🎯 5, 6 & 7. ANTRENMAN & SPORCU HEDEFLERİ
+              </p>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                    Haftalık Ders Gün Sayısı
+                  </label>
+                  <select
+                    value={form.haftalikGunSayisi}
+                    onChange={(e) =>
+                      setForm({ ...form, haftalikGunSayisi: e.target.value })
+                    }
+                    className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none cursor-pointer"
+                  >
+                    <option value="1 GÜN">1 GÜN</option>
+                    <option value="2 GÜN">2 GÜN</option>
+                    <option value="3 GÜN VE ÜZERİ">3 GÜN VE ÜZERİ</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                    Cimnastik Hedefi
+                  </label>
+                  <select
+                    value={form.cimnastikHedefi}
+                    onChange={(e) =>
+                      setForm({ ...form, cimnastikHedefi: e.target.value })
+                    }
+                    className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none cursor-pointer"
+                  >
+                    <option value="Hobi Olarak">Hobi Olarak</option>
+                    <option value="Performans & Altyapı">
+                      Performans & Altyapı
+                    </option>
+                    <option value="Yarışmacı Düzey">Yarışmacı Düzey</option>
+                  </select>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
-                  Kan Grubu
+                  Sporcunun Hedefleri (Çoklu Seçim):
                 </label>
-                <select
-                  value={form.kanGrubu}
-                  onChange={(e) =>
-                    setForm({ ...form, kanGrubu: e.target.value })
-                  }
-                  className="w-full p-2.5 rounded-xl border-2 border-slate-200 font-bold text-xs bg-slate-50 outline-none"
-                >
-                  <option value="0 Rh+">0 Rh+</option>
-                  <option value="0 Rh-">0 Rh-</option>
-                  <option value="A Rh+">A Rh+</option>
-                  <option value="A Rh-">A Rh-</option>
-                  <option value="B Rh+">B Rh+</option>
-                  <option value="AB Rh+">AB Rh+</option>
-                </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {HEDEF_SECENEKLERI.map((hedef, idx) => {
+                    const secili = (form.hedefler || []).includes(hedef);
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => hedefToggle(hedef, false)}
+                        className={`p-2 rounded-xl text-[11px] font-bold border transition-all text-left flex items-center justify-between cursor-pointer ${
+                          secili
+                            ? "bg-amber-400 text-slate-950 border-amber-500 font-black"
+                            : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
+                        }`}
+                      >
+                        <span>{hedef}</span>
+                        <span>{secili ? "✓" : "+"}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+            </div>
+
+            {/* 8, 9, 10. BİZİ NEREDEN DUYDUNUZ, İZİN & EK BİLGİLER */}
+            <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+              <p className="text-xs font-black text-indigo-800 uppercase border-b pb-1 border-indigo-200">
+                📢 8, 9 & 10. DİĞER DETAYLAR
+              </p>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                    Bizi Nereden Duydunuz?
+                  </label>
+                  <select
+                    value={form.duydugunuzYer}
+                    onChange={(e) =>
+                      setForm({ ...form, duydugunuzYer: e.target.value })
+                    }
+                    className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none cursor-pointer"
+                  >
+                    <option value="Tavsiye">Tavsiye / Tanıdık</option>
+                    <option value="Instagram / Sosyal Medya">
+                      Instagram / Sosyal Medya
+                    </option>
+                    <option value="Google Arama">Google / İnternet</option>
+                    <option value="Afiş / Bordo">Afiş / Tabela</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
+                    Fotoğraf / Video İzni
+                  </label>
+                  <select
+                    value={form.fotografIznı}
+                    onChange={(e) =>
+                      setForm({ ...form, fotografIznı: e.target.value })
+                    }
+                    className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none cursor-pointer"
+                  >
+                    <option value="İzin Veriyorum">İzin Veriyorum</option>
+                    <option value="İzin Vermiyorum">İzin Vermiyorum</option>
+                  </select>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
-                  Lisans
+                  Ek Notlar & Özel Açıklamalar
                 </label>
-                <select
-                  value={form.lisansliMi}
+                <input
+                  type="text"
+                  placeholder="Eklemek istediğiniz özel bir durum var mı?"
+                  value={form.ekBilgiler}
                   onChange={(e) =>
-                    setForm({ ...form, lisansliMi: e.target.value === "true" })
+                    setForm({ ...form, ekBilgiler: e.target.value })
                   }
-                  className="w-full p-2.5 rounded-xl border-2 border-slate-200 font-bold text-xs bg-slate-50 outline-none"
-                >
-                  <option value="false">Yok</option>
-                  <option value="true">Lisanslı</option>
-                </select>
+                  className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
+                />
+              </div>
+
+              <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-300">
+                <label className="block text-[10px] font-black uppercase text-amber-900 mb-1">
+                  📡 NFC Kart ID
+                </label>
+                <input
+                  type="text"
+                  value={form.nfcKartId}
+                  onChange={(e) =>
+                    setForm({ ...form, nfcKartId: e.target.value })
+                  }
+                  placeholder="NFC Kartı Okutun..."
+                  className="w-full p-2 rounded-lg border border-amber-400 font-extrabold text-xs bg-white outline-none"
+                />
               </div>
             </div>
 
-            <div>
-              <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
-                Cimnastik Grubu *
-              </label>
-              <select
-                value={form.grup}
-                onChange={(e) => setForm({ ...form, grup: e.target.value })}
-                className="w-full p-2.5 rounded-xl border-2 border-slate-200 font-bold text-xs bg-slate-50 outline-none"
-              >
-                {gruplar.map((g, idx) => (
-                  <option key={idx} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="p-3 bg-amber-50 rounded-2xl border-2 border-amber-300">
-              <label className="block text-[10px] font-black uppercase text-amber-900 mb-1">
-                📡 NFC Kart ID
-              </label>
-              <input
-                type="text"
-                value={form.nfcKartId}
-                onChange={(e) =>
-                  setForm({ ...form, nfcKartId: e.target.value })
-                }
-                placeholder="Kartı Okutun..."
-                className="w-full p-2 rounded-xl border-2 border-amber-400 font-extrabold text-xs bg-white text-slate-900 outline-none"
-              />
-            </div>
-
+            {/* BUTONLAR */}
             <div className="space-y-2 pt-2">
               <button
                 type="submit"
-                className="w-full bg-[#0F172A] hover:bg-slate-800 text-amber-400 font-black py-3.5 rounded-xl text-xs uppercase tracking-wider shadow-md"
+                className="w-full bg-[#0F172A] hover:bg-slate-800 text-amber-400 font-black py-4 rounded-2xl text-xs uppercase tracking-wider shadow-lg cursor-pointer transition-all"
               >
                 🚀 Öğrenciyi Sisteme Kaydet
               </button>
@@ -1378,18 +2455,18 @@ export default function OgrenciYonetimPage() {
               <button
                 type="button"
                 onClick={() =>
-                  ciktiAlPdf({ ...form, veliListesi: eklenenVeliler })
+                  ciktiAlWord({ ...form, veliListesi: eklenenVeliler })
                 }
-                className="w-full bg-blue-50 hover:bg-blue-100 text-blue-900 border-2 border-blue-300 font-black py-3 rounded-xl text-xs uppercase tracking-wider transition-colors"
+                className="w-full bg-blue-50 hover:bg-blue-100 text-blue-900 border-2 border-blue-300 font-black py-3 rounded-2xl text-xs uppercase tracking-wider transition-colors cursor-pointer"
               >
-                📄 PDF Kayıt Formu İndir / Yazdır
+                📝 Word Kayıt Formu İndir (.doc)
               </button>
             </div>
           </form>
         </div>
 
         {/* SAĞ: ÖĞRENCİ LİSTESİ */}
-        <div className="lg:col-span-7 bg-white p-6 rounded-3xl border-2 border-slate-200 shadow-xl text-slate-900 space-y-4">
+        <div className="lg:col-span-6 bg-white p-6 rounded-3xl border-2 border-slate-200 shadow-xl text-slate-900 space-y-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-3 gap-2">
             <h2 className="text-lg font-black">
               🎓 Kayıtlı Öğrenciler ({filtrelenmisOgrenciler.length})
@@ -1420,14 +2497,17 @@ export default function OgrenciYonetimPage() {
               <select
                 value={filtreGrup}
                 onChange={(e) => setFiltreGrup(e.target.value)}
-                className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
+                className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none cursor-pointer"
               >
                 <option value="Tüm Gruplar">Tüm Gruplar</option>
-                {gruplar.map((g, idx) => (
-                  <option key={idx} value={g}>
-                    {g}
-                  </option>
-                ))}
+                {gruplar.map((g, idx) => {
+                  const grupAd = typeof g === "object" ? g.ad : g;
+                  return (
+                    <option key={idx} value={grupAd}>
+                      {grupAd}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </div>
@@ -1444,7 +2524,7 @@ export default function OgrenciYonetimPage() {
                     <th className="p-3">Öğrenci</th>
                     <th className="p-3">Grup</th>
                     <th className="p-3">Veliler</th>
-                    <th className="p-3 text-right">İşlemler</th>
+                    <th className="p-3 text-right">İşlem</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs font-bold">
@@ -1466,7 +2546,7 @@ export default function OgrenciYonetimPage() {
                         <td className="p-3">
                           <button
                             onClick={() => ogrenciSecVePaneliAc(o)}
-                            className="font-black text-blue-600 hover:text-blue-800 underline text-left"
+                            className="font-black text-blue-600 hover:text-blue-800 underline text-left cursor-pointer"
                           >
                             {o.adSoyad}
                           </button>
@@ -1478,32 +2558,12 @@ export default function OgrenciYonetimPage() {
                             : "Veli Yok"}
                         </td>
 
-                        <td className="p-3 text-right space-x-1 whitespace-nowrap">
+                        <td className="p-3 text-right whitespace-nowrap">
                           <button
-                            onClick={() => {
-                              setTransferOgrenci(o);
-                              setHedefGrup(o.grup);
-                            }}
-                            className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-black px-2 py-1 rounded-lg text-[10px]"
-                            title="Grup Transferi"
+                            onClick={() => ogrenciSecVePaneliAc(o)}
+                            className="bg-slate-800 hover:bg-slate-900 text-amber-400 font-black px-3 py-1.5 rounded-xl text-[11px] shadow-sm transition-all cursor-pointer"
                           >
-                            🔄 Transfer
-                          </button>
-
-                          <button
-                            onClick={() => ogrenciDondur(o._id, o.adSoyad)}
-                            className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-black px-2 py-1 rounded-lg text-[10px]"
-                            title="Kaydı Dondur"
-                          >
-                            ⏸ Dondur
-                          </button>
-
-                          <button
-                            onClick={() => ogrenciSil(o._id, o.adSoyad)}
-                            className="bg-rose-100 hover:bg-rose-200 text-rose-700 border border-rose-300 font-black px-2 py-1 rounded-lg text-[10px]"
-                            title="Öğrenciyi Sil"
-                          >
-                            🗑️ Sil
+                            🔍 İncele / Yönet
                           </button>
                         </td>
                       </tr>
@@ -1515,192 +2575,6 @@ export default function OgrenciYonetimPage() {
           )}
         </div>
       </div>
-
-      {/* 📊 EXCEL MODALI */}
-      {excelModalAcik && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border-2 border-slate-900 max-w-2xl w-full p-6 shadow-2xl space-y-5 text-slate-900 relative">
-            <button
-              onClick={() => setExcelModalAcik(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 font-black text-xl"
-            >
-              ✕
-            </button>
-
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-200 pb-3 gap-2">
-              <h3 className="text-lg font-black flex items-center gap-2">
-                <span>📊</span> Excel'den Toplu Öğrenci Yükle
-              </h3>
-
-              <button
-                onClick={ornekExcelIndir}
-                className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-black px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow-md transition-all"
-              >
-                <span>📥</span>
-                <span>Hazır Excel Şablonunu İndir (.xlsx)</span>
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-xs font-black text-slate-700 uppercase">
-                📋 Excel Sütun Düzeni Ön İzlemesi:
-              </p>
-
-              <div className="overflow-x-auto border-2 border-slate-300 rounded-xl bg-slate-100 p-2 shadow-inner">
-                <table className="w-full border-collapse bg-white text-[10px] text-center font-mono">
-                  <thead>
-                    <tr className="bg-slate-200 text-slate-600 border-b border-slate-300 font-bold">
-                      <th className="p-1 border-r border-slate-300 bg-slate-300 w-6"></th>
-                      <th className="p-1 border-r border-slate-300">A</th>
-                      <th className="p-1 border-r border-slate-300">B</th>
-                      <th className="p-1 border-r border-slate-300">C</th>
-                      <th className="p-1 border-r border-slate-300">D</th>
-                      <th className="p-1 border-r border-slate-300">E</th>
-                      <th className="p-1 border-r border-slate-300">F</th>
-                      <th className="p-1 border-r border-slate-300">G</th>
-                      <th className="p-1 border-r border-slate-300">H</th>
-                      <th className="p-1 border-r border-slate-300">I</th>
-                      <th className="p-1">J</th>
-                    </tr>
-                    <tr className="bg-emerald-100 text-emerald-950 font-black border-b border-slate-300">
-                      <td className="p-1.5 border-r border-slate-300 bg-slate-200 text-slate-600 font-bold">
-                        1
-                      </td>
-                      <td className="p-1.5 border-r border-slate-300">
-                        Öğrenci Adı Soyadı
-                      </td>
-                      <td className="p-1.5 border-r border-slate-300">Grup</td>
-                      <td className="p-1.5 border-r border-slate-300">
-                        Veli Adı
-                      </td>
-                      <td className="p-1.5 border-r border-slate-300">
-                        Yakınlık
-                      </td>
-                      <td className="p-1.5 border-r border-slate-300">
-                        Veli Telefon
-                      </td>
-                      <td className="p-1.5 border-r border-slate-300">
-                        Kan Grubu
-                      </td>
-                      <td className="p-1.5 border-r border-slate-300">
-                        Lisanslı mı
-                      </td>
-                      <td className="p-1.5 border-r border-slate-300">
-                        Aylık Ücret
-                      </td>
-                      <td className="p-1.5 border-r border-slate-300">
-                        Ödeme Günü
-                      </td>
-                      <td className="p-1.5">NFC Kart ID</td>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="text-slate-700">
-                      <td className="p-1.5 border-r border-slate-300 bg-slate-200 font-bold text-slate-600">
-                        2
-                      </td>
-                      <td className="p-1.5 border-r border-slate-300 font-bold text-blue-900">
-                        Zeynep Kaya
-                      </td>
-                      <td className="p-1.5 border-r border-slate-300">
-                        Minikler Cimnastik
-                      </td>
-                      <td className="p-1.5 border-r border-slate-300">
-                        Ayşe Kaya
-                      </td>
-                      <td className="p-1.5 border-r border-slate-300">Anne</td>
-                      <td className="p-1.5 border-r border-slate-300">
-                        05321112233
-                      </td>
-                      <td className="p-1.5 border-r border-slate-300">0 Rh+</td>
-                      <td className="p-1.5 border-r border-slate-300">Evet</td>
-                      <td className="p-1.5 border-r border-slate-300">2000</td>
-                      <td className="p-1.5 border-r border-slate-300">1</td>
-                      <td className="p-1.5 text-amber-600">12345678</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="border-2 border-dashed border-slate-300 p-5 rounded-2xl text-center space-y-2 bg-slate-50">
-              <label className="cursor-pointer bg-[#0F172A] hover:bg-slate-800 text-amber-400 font-black px-6 py-3 rounded-xl text-xs inline-block shadow-md">
-                <span>📁 Hazırladığınız Excel Dosyasını Yükleyin (.xlsx)</span>
-                <input
-                  type="file"
-                  accept=".xlsx, .xls"
-                  onChange={excelYukle}
-                  className="hidden"
-                />
-              </label>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 🔄 ÖĞRENCİ MEVCUT GRUBU VURGULANMIŞ TRANSFER MODALI */}
-      {transferOgrenci && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border-2 border-slate-900 max-w-md w-full p-6 shadow-2xl space-y-4 text-slate-900 relative">
-            <button
-              onClick={() => setTransferOgrenci(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 font-black text-xl"
-            >
-              ✕
-            </button>
-
-            <h3 className="text-lg font-black border-b border-slate-200 pb-2 flex items-center gap-2">
-              <span>🔄</span> Grup Transferi
-            </h3>
-
-            <div className="p-3 bg-slate-900 text-white rounded-2xl space-y-1">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Öğrenci Adı ve Mevcut Grubu:
-              </p>
-              <p className="text-sm font-black text-white">
-                {transferOgrenci.adSoyad}
-              </p>
-              <div className="pt-1">
-                <span className="bg-amber-400 text-slate-950 text-[10px] font-black px-2.5 py-1 rounded-lg inline-block">
-                  📌 {transferOgrenci.grup}
-                </span>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">
-                Transfer Edilecek Yeni Grubu Seçin:
-              </label>
-              <select
-                value={hedefGrup}
-                onChange={(e) => setHedefGrup(e.target.value)}
-                className="w-full p-3 rounded-xl border-2 border-slate-300 font-bold text-xs bg-slate-50 outline-none"
-              >
-                {gruplar.map((g, idx) => (
-                  <option key={idx} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
-              <button
-                onClick={() => setTransferOgrenci(null)}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-200 hover:bg-slate-300"
-              >
-                İptal
-              </button>
-              <button
-                onClick={grupTransferiYap}
-                className="px-5 py-2 rounded-xl text-xs font-black bg-amber-400 hover:bg-amber-500 text-slate-950 shadow-md"
-              >
-                Transferi Onayla
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

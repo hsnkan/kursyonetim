@@ -1,26 +1,101 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import StatCard from "@/app/components/StatCard";
 
 export default function RaporlarPage() {
   const [ogrenciOzet, setOgrenciOzet] = useState(null);
   const [finansOzet, setFinansOzet] = useState(null);
+  const [dataMali, setDataMali] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function verileriGetir() {
       try {
-        const [ogrenciRes, muhasebeRes] = await Promise.all([
-          fetch("/api/ogrenciler"),
+        // 🚀 Aktif öğrenciler, pasif öğrenciler ve muhasebe verilerini paralel çekiyoruz
+        const [aktifRes, pasifRes, muhasebeRes] = await Promise.all([
+          fetch("/api/ogrenciler?durum=aktif"),
+          fetch("/api/ogrenciler?durum=pasif"),
           fetch("/api/muhasebe"),
         ]);
-        const ogrenciData = await ogrenciRes.json();
+
+        const aktifData = await aktifRes.json();
+        const pasifData = await pasifRes.json();
         const muhasebeData = await muhasebeRes.json();
 
-        if (ogrenciData.success) setOgrenciOzet(ogrenciData.istatistik);
-        if (muhasebeData.success) setFinansOzet(muhasebeData.finansalRapor);
+        // 🗓️ Bu Ay ve Geçen Ay Tarih Aralıklarını Belirle
+        const simdi = new Date();
+        const buAyBaslangic = new Date(
+          simdi.getFullYear(),
+          simdi.getMonth(),
+          1,
+        );
+        const buAyBitis = new Date(
+          simdi.getFullYear(),
+          simdi.getMonth() + 1,
+          0,
+          23,
+          59,
+          59,
+          999,
+        );
+
+        const gecenAyBaslangic = new Date(
+          simdi.getFullYear(),
+          simdi.getMonth() - 1,
+          1,
+        );
+        const gecenAyBitis = new Date(
+          simdi.getFullYear(),
+          simdi.getMonth(),
+          0,
+          23,
+          59,
+          59,
+          999,
+        );
+
+        // 📊 ÖĞRENCİ İSTATİSTİKLERİNİ HESAPLA
+        if (aktifData.success) {
+          const aktifler = aktifData.data || [];
+          const pasifler = pasifData.data || [];
+
+          const buAyYeni = aktifler.filter((o) => {
+            const t = new Date(o.createdAt);
+            return t >= buAyBaslangic && t <= buAyBitis;
+          }).length;
+
+          const gecenAyYeni = aktifler.filter((o) => {
+            const t = new Date(o.createdAt);
+            return t >= gecenAyBaslangic && t <= gecenAyBitis;
+          }).length;
+
+          const buAyAyrilan = pasifler.filter((o) => {
+            const t = new Date(o.updatedAt || o.createdAt);
+            return t >= buAyBaslangic && t <= buAyBitis;
+          }).length;
+
+          const gecenAyAyrilan = pasifler.filter((o) => {
+            const t = new Date(o.updatedAt || o.createdAt);
+            return t >= gecenAyBaslangic && t <= gecenAyBitis;
+          }).length;
+
+          setOgrenciOzet({
+            toplamAktif: aktifler.length,
+            buAyYeni,
+            gecenAyYeni,
+            buAyAyrilan,
+            gecenAyAyrilan,
+          });
+        }
+
+        // 💵 FINANS İSTATİSTİKLERİ
+        if (muhasebeData.success) {
+          setFinansOzet(muhasebeData.finansalRapor);
+          setDataMali(muhasebeData.dataMali);
+        }
       } catch (err) {
-        console.error("Veri çekme hatası:", err);
+        console.error("Dashboard veri çekme hatası:", err);
       } finally {
         setLoading(false);
       }
@@ -72,11 +147,41 @@ export default function RaporlarPage() {
         />
         <StatCard
           baslik="Bu Ayki Toplam Gelir"
-          deger={`${finansOzet?.buAyGelir || 0} ₺`}
+          deger={`${(finansOzet?.buAyGelir || 0).toLocaleString("tr-TR")} ₺`}
           degisim={finansOzet?.fark}
           degisimMetni="₺ geçen aya göre"
         />
       </div>
+
+      {/* TAH SİLAT VE ALACAK ÖZET BİLGİSİ */}
+      {dataMali && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+            <p className="text-xs font-black uppercase text-slate-400">
+              Beklenen Toplam Aidat
+            </p>
+            <p className="text-2xl font-black text-white mt-1">
+              {(dataMali.hedefBeklenenToplam || 0).toLocaleString("tr-TR")} ₺
+            </p>
+          </div>
+          <div className="bg-slate-900 border border-emerald-900/50 p-5 rounded-2xl">
+            <p className="text-xs font-black uppercase text-emerald-400">
+              Tahsil Edilen Gelir
+            </p>
+            <p className="text-2xl font-black text-emerald-400 mt-1">
+              {(dataMali.hedefTahsilEdilen || 0).toLocaleString("tr-TR")} ₺
+            </p>
+          </div>
+          <div className="bg-slate-900 border border-amber-900/50 p-5 rounded-2xl">
+            <p className="text-xs font-black uppercase text-amber-400">
+              Kalan Bekleyen Alacak
+            </p>
+            <p className="text-2xl font-black text-amber-400 mt-1">
+              {(dataMali.hedefKalanAlacak || 0).toLocaleString("tr-TR")} ₺
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* GELİR KARŞILAŞTIRMA KARTI */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border-2 border-slate-200 shadow-2xl text-slate-900">
@@ -91,7 +196,7 @@ export default function RaporlarPage() {
               Geçen Ay Geliri
             </p>
             <p className="text-3xl font-black text-slate-900 mt-1">
-              {finansOzet?.gecenAyGelir || 0} ₺
+              {(finansOzet?.gecenAyGelir || 0).toLocaleString("tr-TR")} ₺
             </p>
           </div>
 
@@ -115,7 +220,7 @@ export default function RaporlarPage() {
               Bu Ay Geliri
             </p>
             <p className="text-3xl font-black text-amber-600 mt-1">
-              {finansOzet?.buAyGelir || 0} ₺
+              {(finansOzet?.buAyGelir || 0).toLocaleString("tr-TR")} ₺
             </p>
           </div>
         </div>

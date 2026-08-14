@@ -90,7 +90,7 @@ export default function Navbar() {
       ),
     },
     {
-      name: "Mali Yönetim",
+      name: "Aidat & Kasa Takibi",
       href: "/dashboard/muhasebe",
       icon: (
         <svg
@@ -129,9 +129,16 @@ export default function Navbar() {
     },
   ];
 
-  const cikisYap = () => {
-    localStorage.removeItem("isLoggedIn");
-    router.push("/");
+  const cikisYap = async () => {
+    try {
+      // 🔒 Sunucuda HttpOnly Cookie'yi sil
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (err) {
+      console.error("Çıkış yaparken hata:", err);
+    } finally {
+      localStorage.removeItem("isLoggedIn");
+      window.location.href = "/";
+    }
   };
 
   return (
@@ -202,7 +209,7 @@ export default function Navbar() {
       <div className="p-4 border-t border-slate-800/80">
         <button
           onClick={cikisYap}
-          className="w-full flex items-center justify-center space-x-2 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 text-rose-300 font-bold py-3 rounded-xl transition-colors text-sm shadow-sm"
+          className="w-full flex items-center justify-center space-x-2 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 text-rose-300 font-bold py-3 rounded-xl transition-colors text-sm shadow-sm cursor-pointer"
         >
           <svg
             className="w-4 h-4"

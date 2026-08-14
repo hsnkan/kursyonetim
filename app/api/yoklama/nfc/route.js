@@ -68,12 +68,28 @@ export async function POST(request) {
       );
     }
 
-    // 3. 🗓️ BUGÜNKÜ MÜKERRER YOKLAMA KONTROLÜ
-    const bugunBaslangic = new Date();
-    bugunBaslangic.setHours(0, 0, 0, 0);
-
-    const bugunBitis = new Date();
-    bugunBitis.setHours(23, 59, 59, 999);
+    // 3. 🗓️ SAAT DİLİMİ SAPMASINI ENGELLEYEN YEREL GÜN HESAPLAMASI
+    const simdi = new Date();
+    // Bulunduğumuz yıl, ay ve günün tam olarak 00:00:00 başlangıcı
+    const bugunBaslangic = new Date(
+      simdi.getFullYear(),
+      simdi.getMonth(),
+      simdi.getDate(),
+      0,
+      0,
+      0,
+      0,
+    );
+    // Bulunduğumuz yıl, ay ve günün tam olarak 23:59:59 bitişi
+    const bugunBitis = new Date(
+      simdi.getFullYear(),
+      simdi.getMonth(),
+      simdi.getDate(),
+      23,
+      59,
+      59,
+      999,
+    );
 
     const mevcutYoklama = await Yoklama.findOne({
       ogrenciId: ogrenci._id,
@@ -96,7 +112,7 @@ export async function POST(request) {
     // 4. 📝 YENİ YOKLAMA KAYDI OLUŞTUR
     const yeniYoklama = await Yoklama.create({
       ogrenciId: ogrenci._id,
-      tarih: new Date(),
+      tarih: simdi, // Yerel saat damgasıyla kaydet
       durum: "geldi",
       yoklamaTipi: "nfc",
     });
