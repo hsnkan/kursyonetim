@@ -2,18 +2,24 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Ogrenci from "@/models/Ogrenci";
 import Yoklama from "@/models/Yoklama";
+import { requireAuth } from "@/lib/auth";
+import { findOgrenciByNfc } from "@/lib/nfc";
+import { logOgrenciIslem } from "@/lib/audit";
 
 export async function POST(request) {
   try {
+    const auth = requireAuth(request);
+    if (auth.error) return auth.error;
+
     await dbConnect();
 
     let body;
     try {
       body = await request.json();
-    } catch (e) {
+    } catch {
       return NextResponse.json(
         { success: false, error: "Geçersiz istek gövdesi (JSON hatası)!" },
-        { status: 200 }, // 400 yerine 200 dönüp mesajı ekrana basıyoruz
+        { status: 400 },
       );
     }
 
@@ -22,55 +28,24 @@ export async function POST(request) {
     if (!cardId || String(cardId).trim() === "") {
       return NextResponse.json(
         { success: false, error: "Kart ID okunurken boş veri algılandı!" },
-        { status: 200 },
+        { status: 400 },
       );
     }
 
-    // 1. Kart ID'yi tüm gizli/özel karakterlerden (Enter, Tab vb.) temizle
-    const hamCardId = String(cardId).trim();
-    // Yalnızca harf ve rakamları tut (özel okuyucu eklerini temizle)
-    const temizCardId = hamCardId.replace(/[^a-zA-Z0-9]/g, "");
-    // Başındaki sıfırları temizlenmiş alternatif
-    const sifirsizCardId = temizCardId.replace(/^0+/, "");
-
-    console.log("📡 Okunan Kart Numaraları:", {
-      hamCardId,
-      temizCardId,
-      sifirsizCardId,
-    });
-
-    // 2. 🔍 ESNEK ARAMA (Tüm olası kart alanlarında ve formatlarında)
-    const ogrenci = await Ogrenci.findOne({
-      $or: [
-        { cardId: hamCardId },
-        { nfcId: hamCardId },
-        { nfcKartId: hamCardId },
-        { cardId: temizCardId },
-        { nfcId: temizCardId },
-        { nfcKartId: temizCardId },
-        { cardId: sifirsizCardId },
-        { nfcId: sifirsizCardId },
-        { nfcKartId: sifirsizCardId },
-        { cardId: { $regex: new RegExp(`^${temizCardId}$`, "i") } },
-        { nfcId: { $regex: new RegExp(`^${temizCardId}$`, "i") } },
-        { nfcKartId: { $regex: new RegExp(`^${temizCardId}$`, "i") } },
-      ],
-    });
+    const ogrenci = await findOgrenciByNfc(Ogrenci, cardId);
 
     if (!ogrenci) {
       return NextResponse.json(
         {
           success: false,
-          error: `Okunan Kart ID (${temizCardId || hamCardId}) sistemde hiçbir öğrenci ile eşleşmedi! Lütfen Öğrenci Düzenle ekranından bu kart numarasını öğrenciye tanımlayınız.`,
-          okunanKart: temizCardId || hamCardId,
+          error: `Okunan Kart ID (${String(cardId).trim()}) sistemde hiçbir öğrenci ile eşleşmedi!`,
+          okunanKart: String(cardId).trim(),
         },
-        { status: 200 },
+        { status: 404 },
       );
     }
 
-    // 3. 🗓️ SAAT DİLİMİ SAPMASINI ENGELLEYEN YEREL GÜN HESAPLAMASI
     const simdi = new Date();
-    // Bulunduğumuz yıl, ay ve günün tam olarak 00:00:00 başlangıcı
     const bugunBaslangic = new Date(
       simdi.getFullYear(),
       simdi.getMonth(),
@@ -80,7 +55,6 @@ export async function POST(request) {
       0,
       0,
     );
-    // Bulunduğumuz yıl, ay ve günün tam olarak 23:59:59 bitişi
     const bugunBitis = new Date(
       simdi.getFullYear(),
       simdi.getMonth(),
@@ -109,12 +83,17 @@ export async function POST(request) {
       });
     }
 
-    // 4. 📝 YENİ YOKLAMA KAYDI OLUŞTUR
     const yeniYoklama = await Yoklama.create({
       ogrenciId: ogrenci._id,
-      tarih: simdi, // Yerel saat damgasıyla kaydet
+      tarih: simdi,
       durum: "geldi",
       yoklamaTipi: "nfc",
+    });
+
+    await logOgrenciIslem(auth.session, ogrenci._id, {
+      islemTipi: "YOKLAMA_NFC",
+      detay: `NFC kart ile yoklama alındı (${simdi.toLocaleString("tr-TR")}).`,
+      entityLabel: ogrenci.adSoyad,
     });
 
     return NextResponse.json({
@@ -130,7 +109,7 @@ export async function POST(request) {
     console.error("🔴 NFC API HATASI:", error);
     return NextResponse.json(
       { success: false, error: "Sunucu hatası: " + error.message },
-      { status: 200 },
+      { status: 500 },
     );
   }
 }

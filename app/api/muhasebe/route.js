@@ -2,12 +2,7 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Odeme from "@/models/Odeme";
 import Ogrenci from "@/models/Ogrenci";
-
-// 🛡️ Sunucu Tarafı Oturum Denetimi Yardımcısı
-function yetkiKontrolu(request) {
-  const sessionToken = request.cookies.get("session_token")?.value;
-  return !!sessionToken;
-}
+import { requireAuth } from "@/lib/auth";
 
 // Telefon numarasını öğrenci nesnesinin tüm olası alanlarından bulan yardımcı fonksiyon
 const telefonBul = (ogrenci) => {
@@ -42,12 +37,8 @@ const veliAdBul = (ogrenci) => {
 export async function GET(request) {
   try {
     // 🔒 Oturum Kontrolü
-    if (!yetkiKontrolu(request)) {
-      return NextResponse.json(
-        { success: false, error: "Yetkisiz erişim! Lütfen giriş yapın." },
-        { status: 401 },
-      );
-    }
+    const auth = requireAuth(request);
+    if (auth.error) return auth.error;
 
     await dbConnect();
 
@@ -216,12 +207,8 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     // 🔒 Oturum Kontrolü
-    if (!yetkiKontrolu(request)) {
-      return NextResponse.json(
-        { success: false, error: "Yetkisiz erişim! Lütfen giriş yapın." },
-        { status: 401 },
-      );
-    }
+    const auth = requireAuth(request);
+    if (auth.error) return auth.error;
 
     await dbConnect();
     const body = await request.json();

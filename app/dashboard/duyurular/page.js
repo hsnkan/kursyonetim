@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useBranding } from "@/app/components/BrandingProvider";
 
 export default function DuyurularPage() {
+  const branding = useBranding();
   const [gruplar, setGruplar] = useState([]);
   const [ogrenciler, setOgrenciler] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,20 +18,21 @@ export default function DuyurularPage() {
   const [gonderimDurum, setGonderimDurum] = useState(null);
 
   // HAZIR MESAJ ŞABLONLARI
-  const sablonlar = {
-    GENEL:
-      "Balans Cimnastik Akademi ailesi olarak tüm sporcularımıza ve velilerimize sağlıklı, başarılı günler dileriz. Güncel antrenman takvimimiz ve duyurularımız hakkında bilgilendirmelerimiz devam edecektir.",
-    ODEME:
-      "Balans Cimnastik Akademi bünyesinde eğitim alan sporcularımızın aylık kurs aidat ödeme zamanı gelmiştir. Ödemesini gerçekleştiren velilerimiz bu mesajı dikkate almayabilirler. İyi günler dileriz.",
-    ARA_TATIL:
-      "Değerli Velilerimiz, okulların ara tatil dönemine girmesi nedeniyle antrenman saatlerimizde düzenlemeye gidilmiştir. Detaylı antrenman programı gruplarınızda paylaşılacaktır. Tüm sporcularımıza iyi tatiller dileriz.",
-    RESMI_TATIL:
-      "Değerli Velilerimiz, yaklaşan resmi tatil nedeniyle akademimiz belirtilen tarihlerde kapalı olacaktır. Tatil sonrası antrenmanlarımız normal seyriyle devam edecektir. Bilgilerinize sunarız.",
-    KAR_TATILI:
-      "Değerli Velilerimiz, bölgemizdeki olumsuz hava şartları ve kar yağışı nedeniyle sporcularımızın güvenliği açısından bugün yapılacak tüm antrenmanlarımız iptal edilmiştir. Telafi dersleri hakkında bilgilendirme yapılacaktır.",
-    YARISMA:
-      "Değerli Velilerimiz, önümüzdeki yarışma ve turnuva dönemi hazırlıkları kapsamında antrenman tempomuz artırılmıştır. Sporcularımızın antrenman saatlerine ve beslenme düzenlerine hassasiyet göstermenizi rica ederiz.",
-  };
+  const sablonlar = useMemo(
+    () => ({
+      GENEL: `${branding.salonAdi} ailesi olarak tüm sporcularımıza ve velilerimize sağlıklı, başarılı günler dileriz. Güncel antrenman takvimimiz ve duyurularımız hakkında bilgilendirmelerimiz devam edecektir.`,
+      ODEME: `${branding.salonAdi} bünyesinde eğitim alan sporcularımızın aylık kurs aidat ödeme zamanı gelmiştir. Ödemesini gerçekleştiren velilerimiz bu mesajı dikkate almayabilirler. İyi günler dileriz.`,
+      ARA_TATIL:
+        "Değerli Velilerimiz, okulların ara tatil dönemine girmesi nedeniyle antrenman saatlerimizde düzenlemeye gidilmiştir. Detaylı antrenman programı gruplarınızda paylaşılacaktır. Tüm sporcularımıza iyi tatiller dileriz.",
+      RESMI_TATIL:
+        "Değerli Velilerimiz, yaklaşan resmi tatil nedeniyle akademimiz belirtilen tarihlerde kapalı olacaktır. Tatil sonrası antrenmanlarımız normal seyriyle devam edecektir. Bilgilerinize sunarız.",
+      KAR_TATILI:
+        "Değerli Velilerimiz, bölgemizdeki olumsuz hava şartları ve kar yağışı nedeniyle sporcularımızın güvenliği açısından bugün yapılacak tüm antrenmanlarımız iptal edilmiştir. Telafi dersleri hakkında bilgilendirme yapılacaktır.",
+      YARISMA:
+        "Değerli Velilerimiz, önümüzdeki yarışma ve turnuva dönemi hazırlıkları kapsamında antrenman tempomuz artırılmıştır. Sporcularımızın antrenman saatlerine ve beslenme düzenlerine hassasiyet göstermenizi rica ederiz.",
+    }),
+    [branding.salonAdi],
+  );
 
   useEffect(() => {
     veriGetir();
@@ -156,7 +159,7 @@ export default function DuyurularPage() {
 
     const temizTel = telefon.replace(/\D/g, "");
     const tel = temizTel.startsWith("90") ? temizTel : `90${temizTel}`;
-    const mesaj = `Sayın ${veli.veliAdSoyad} (${veli.yakinlik}),\n\n*${veli.ogrenciAdSoyad}* sporcumuzun kayıtlı olduğu *${seciliGrupAdi}* grubu duyurusudur:\n\n${duyuruMetni}\n\nBalans Cimnastik Akademi 🤸‍♀️`;
+    const mesaj = `Sayın ${veli.veliAdSoyad} (${veli.yakinlik}),\n\n*${veli.ogrenciAdSoyad}* sporcumuzun kayıtlı olduğu *${seciliGrupAdi}* grubu duyurusudur:\n\n${duyuruMetni}\n\n${branding.whatsappImza}`;
 
     window.open(
       `https://wa.me/${tel}?text=${encodeURIComponent(mesaj)}`,
@@ -177,8 +180,8 @@ export default function DuyurularPage() {
     }
   };
 
-  // KUTUCUKLA SEÇİLEN VELİLERE TOPLU GÖNDERİM
-  const secilenVelilereTopluGonder = () => {
+  // KUTUCUKLA SEÇİLEN VELİLERE TOPLU GÖNDERİM (Sunucu kayıtlı kampanya)
+  const secilenVelilereTopluGonder = async () => {
     if (!duyuruMetni.trim()) return alert("Lütfen duyuru metnini giriniz!");
 
     const hedefVeliler =
@@ -193,20 +196,62 @@ export default function DuyurularPage() {
     }
 
     if (
-      confirm(
-        `'${seciliGrupAdi}' grubunda seçilen ${hedefVeliler.length} veli için WhatsApp pencereleri sırayla açılacaktır. Devam edilsin mi?`,
+      !confirm(
+        `'${seciliGrupAdi}' grubunda ${hedefVeliler.length} veli için toplu WhatsApp kampanyası başlatılacak. Devam edilsin mi?`,
       )
     ) {
-      setGonderimDurum("Gönderiliyor...");
-      hedefVeliler.forEach((v, idx) => {
-        setTimeout(() => {
-          whatsappMesajGonder(v);
-        }, idx * 1200);
+      return;
+    }
+
+    setGonderimDurum("Kampanya oluşturuluyor...");
+
+    try {
+      const res = await fetch("/api/mesajlar/toplu", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          grupAdi: seciliGrupAdi,
+          sablon: seciliSablon,
+          mesajMetni: duyuruMetni.trim(),
+          aliciKeys:
+            secilenVeliKeyleri.length > 0 ? secilenVeliKeyleri : undefined,
+        }),
       });
-      setTimeout(
-        () => setGonderimDurum("✅ Tamamlandı"),
-        hedefVeliler.length * 1200,
-      );
+
+      const data = await res.json();
+      if (!data.success) {
+        setGonderimDurum(null);
+        return alert(data.error || "Kampanya oluşturulamadı!");
+      }
+
+      const { kampanyaId, kayitlar } = data.data;
+      setGonderimDurum(`0 / ${kayitlar.length} gönderildi...`);
+
+      for (let idx = 0; idx < kayitlar.length; idx++) {
+        const kayit = kayitlar[idx];
+        await new Promise((resolve) => setTimeout(resolve, idx === 0 ? 0 : 1200));
+
+        window.open(kayit.waLink, "_blank");
+
+        await fetch(`/api/mesajlar/${kampanyaId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kayitId: kayit.kayitId, durum: "gonderildi" }),
+        });
+
+        setGonderilenVeliler((prev) => ({
+          ...prev,
+          [`${kayit.ogrenciAdSoyad}_${kayit.veliAdSoyad}`]: true,
+        }));
+
+        setGonderimDurum(`${idx + 1} / ${kayitlar.length} gönderildi...`);
+      }
+
+      setGonderimDurum(`✅ ${kayitlar.length} veliye kampanya tamamlandı (kayıt altında)`);
+    } catch (err) {
+      console.error(err);
+      setGonderimDurum("❌ Gönderim hatası");
+      alert("Toplu gönderim sırasında hata oluştu.");
     }
   };
 

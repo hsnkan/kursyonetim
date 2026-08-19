@@ -20,6 +20,12 @@ export default function RaporlarPage() {
   const [gunlukYoklamalar, setGunlukYoklamalar] = useState([]);
   const [yoklamaLoading, setYoklamaLoading] = useState(false);
 
+  // ✍️ GÖREVLİ / ANTRENÖR YÖNETİM STATE'LERİ
+  const [gorevliler, setGorevliler] = useState([]);
+  const [seciliGorevli, setSeciliGorevli] = useState("");
+  const [yeniGorevliAd, setYeniGorevliAd] = useState("");
+  const [yeniGorevliUnvan, setYeniGorevliUnvan] = useState("Antrenör");
+
   const pdfRef = useRef();
 
   const AYLAR = [
@@ -41,11 +47,79 @@ export default function RaporlarPage() {
 
   useEffect(() => {
     verileriGetir();
+    gorevlileriGetir();
   }, [seciliAy, seciliYil]);
 
   useEffect(() => {
     gunlukYoklamaGetir();
   }, [seciliTarih]);
+
+  const gorevlileriGetir = async () => {
+    try {
+      const res = await fetch("/api/gorevliler");
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setGorevliler(data.data);
+        if (data.data.length > 0 && !seciliGorevli) {
+          setSeciliGorevli(`${data.data[0].adSoyad} (${data.data[0].unvan})`);
+        }
+      }
+    } catch (err) {
+      console.error("Görevliler çekilemedi:", err);
+    }
+  };
+
+  const gorevliEkle = async (e) => {
+    e.preventDefault();
+    if (!yeniGorevliAd.trim()) return alert("Lütfen Görevli Ad Soyad giriniz!");
+
+    try {
+      const res = await fetch("/api/gorevliler", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          adSoyad: yeniGorevliAd,
+          unvan: yeniGorevliUnvan,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("✅ Yeni Görevli Eklendi!");
+        setYeniGorevliAd("");
+        gorevlileriGetir();
+      } else {
+        alert("Hata: " + data.error);
+      }
+    } catch (err) {
+      alert("Görevli eklenirken sunucu hatası oluştu.");
+    }
+  };
+
+  // 🗑️ GÖREVLİ SİLME FONKSİYONU
+  const gorevliSil = async (id, adSoyad) => {
+    if (
+      !confirm(
+        `${adSoyad} isimli görevliyi listeden silmek istediğinize emin misiniz?`,
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/gorevliler?id=${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("🗑️ Görevli Silindi!");
+        gorevlileriGetir();
+      } else {
+        alert("Hata: " + (data.error || "Silinemedi"));
+      }
+    } catch (err) {
+      alert("Görevli silinirken sunucu hatası oluştu.");
+    }
+  };
 
   const verileriGetir = async () => {
     try {
@@ -65,7 +139,6 @@ export default function RaporlarPage() {
         setGruplar(grupData.data || []);
       }
 
-      // Seçilen Ay ve Yıl Tarih Aralıkları
       const seciliAyBaslangic = new Date(
         seciliYil,
         seciliAy - 1,
@@ -77,7 +150,6 @@ export default function RaporlarPage() {
       );
       const seciliAyBitis = new Date(seciliYil, seciliAy, 0, 23, 59, 59, 999);
 
-      // Bir Önceki Ayın Tarih Aralıkları (Kıyaslama İçin)
       const gecenAyBaslangic = new Date(seciliYil, seciliAy - 2, 1, 0, 0, 0, 0);
       const gecenAyBitis = new Date(
         seciliYil,
@@ -93,19 +165,16 @@ export default function RaporlarPage() {
         const aktifler = aktifData.data || [];
         const pasifler = pasifData.data || [];
 
-        // Seçili Ayda Yeni Katılan Sporcular
         const seciliAyYeniKatilan = aktifler.filter((o) => {
           const t = new Date(o.createdAt);
           return t >= seciliAyBaslangic && t <= seciliAyBitis;
         }).length;
 
-        // Seçili Ayda Dondurulan (Pasif Yapılan) Sporcular
         const seciliAyDondurulan = pasifler.filter((o) => {
           const t = new Date(o.updatedAt || o.createdAt);
           return t >= seciliAyBaslangic && t <= seciliAyBitis;
         }).length;
 
-        // Seçili Ayda Ayrılan Sporcular
         const seciliAyAyrilan = pasifler.filter((o) => {
           const t = new Date(o.updatedAt || o.createdAt);
           return t >= seciliAyBaslangic && t <= seciliAyBitis;
@@ -152,7 +221,6 @@ export default function RaporlarPage() {
     }
   };
 
-  // 🎯 GRUBA GÖRE FİLTRELENMİŞ YOKLAMA LİSTESİ
   const filtreliYoklamalar = gunlukYoklamalar.filter((y) => {
     if (seciliGrup === "TÜMÜ") return true;
     return (y.grup || "").toLowerCase() === seciliGrup.toLowerCase();
@@ -178,7 +246,6 @@ export default function RaporlarPage() {
     return `${gun} ${aylar[parseInt(ay) - 1]} ${yil}`;
   };
 
-  // 📄 BİLGİSAYARA GÜNLÜK/GEÇMİŞ YOKLAMA PDF İNDİRME / YAZDIRMA
   const pdfIndir = () => {
     const printContent = document.getElementById("pdf-rapor-alani");
     if (!printContent) return alert("Yazdırılacak yoklama alanı bulunamadı!");
@@ -198,11 +265,23 @@ export default function RaporlarPage() {
             th, td { border: 1px solid #CBD5E1; padding: 8px 10px; text-align: left; font-size: 9.5pt; }
             th { background-color: #0F172A; color: white; text-transform: uppercase; font-size: 9pt; }
             tr:nth-child(even) { background-color: #F1F5F9; }
-            .footer { margin-top: 30px; text-align: right; font-size: 8pt; color: #64748B; border-top: 1px solid #E2E8F0; padding-top: 8px; }
+            .imza-box { margin-top: 40px; float: right; width: 250px; text-align: center; font-size: 9.5pt; }
+            .imza-line { border-bottom: 1px dashed #0F172A; margin-top: 45px; margin-bottom: 5px; }
+            .footer { margin-top: 80px; text-align: right; font-size: 8pt; color: #64748B; border-top: 1px solid #E2E8F0; padding-top: 8px; clear: both; }
           </style>
         </head>
         <body>
           ${printContent.innerHTML}
+
+          <div class="imza-box">
+            <div><strong>Yoklamayı Alan Görevli / Antrenör:</strong></div>
+            <div style="font-size: 11pt; margin-top: 6px; font-weight: bold; color: #0F172A;">
+              ${seciliGorevli || "GÖREVLİ SEÇİLMEDİ"}
+            </div>
+            <div class="imza-line"></div>
+            <div style="font-size: 8pt; color: #64748B;">İmza / Onay</div>
+          </div>
+
           <div class="footer">Balans Cimnastik Akademi Otomatik Rapor Sistemleri</div>
         </body>
       </html>
@@ -237,14 +316,13 @@ export default function RaporlarPage() {
           </h1>
           <p className="text-xs md:text-sm font-semibold text-slate-300 mt-1">
             Ay ve yıl bazlı katılan, dondurulan ve ayrılan sporcu istatistikleri
-            ile yoklama PDF raporları.
+            ile görevli imzalı yoklama PDF raporları.
           </p>
         </div>
       </div>
 
       {/* 📊 ÜST İSTATİSTİK BALONCUKLARI */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* 🟢 1. MEVCUT (AKTİF) ÖĞRENCİ SAYISI */}
         <div className="bg-white p-6 rounded-3xl border-2 border-slate-200 shadow-xl space-y-1">
           <span className="text-[10px] font-black uppercase text-slate-400">
             🟢 Mevcut (Aktif) Öğrenci
@@ -257,7 +335,6 @@ export default function RaporlarPage() {
           </span>
         </div>
 
-        {/* 🚀 2. YENİ KATILAN ÖĞRENCİ (SEÇİLİ AY) */}
         <div className="bg-white p-6 rounded-3xl border-2 border-slate-200 shadow-xl space-y-1">
           <span className="text-[10px] font-black uppercase text-blue-600">
             🚀 Yeni Katılan ({seciliAyAdi} {seciliYil})
@@ -270,7 +347,6 @@ export default function RaporlarPage() {
           </span>
         </div>
 
-        {/* ⏸️ 3. DONDURULAN ÖĞRENCİ SAYISI (SEÇİLİ AY) */}
         <div className="bg-white p-6 rounded-3xl border-2 border-slate-200 shadow-xl space-y-1">
           <span className="text-[10px] font-black uppercase text-amber-600">
             ⏸️ Dondurulan ({seciliAyAdi} {seciliYil})
@@ -283,7 +359,6 @@ export default function RaporlarPage() {
           </span>
         </div>
 
-        {/* 🔴 4. AYRILAN ÖĞRENCİ VE KIYASLAMA SAYISI (SEÇİLİ AY) */}
         <div className="bg-white p-6 rounded-3xl border-2 border-rose-200 shadow-xl space-y-1 bg-rose-50/20">
           <span className="text-[10px] font-black uppercase text-rose-800">
             🔴 Ayrılan Öğrenci ({seciliAyAdi} {seciliYil})
@@ -326,7 +401,6 @@ export default function RaporlarPage() {
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          {/* AY SEÇİCİ */}
           <select
             value={seciliAy}
             onChange={(e) => setSeciliAy(Number(e.target.value))}
@@ -339,7 +413,6 @@ export default function RaporlarPage() {
             ))}
           </select>
 
-          {/* YIL SEÇİCİ */}
           <select
             value={seciliYil}
             onChange={(e) => setSeciliYil(Number(e.target.value))}
@@ -377,8 +450,8 @@ export default function RaporlarPage() {
           </button>
         </div>
 
-        {/* FİLTRELEME SEÇENEKLERİ */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+        {/* FİLTRELEME VE GÖREVLİ SEÇİM ALANI */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
           <div>
             <label className="block text-xs font-black uppercase text-slate-700 mb-1">
               📅 Yoklama Tarihi Seçin (Geçmiş / Güncel)
@@ -411,9 +484,31 @@ export default function RaporlarPage() {
               })}
             </select>
           </div>
+
+          {/* ✍️ YOKLAMAYI ONAYLAYAN GÖREVLİ SEÇİMİ */}
+          <div>
+            <label className="block text-xs font-black uppercase text-amber-900 mb-1">
+              ✍️ Yoklamayı Alan Görevli / Antrenör
+            </label>
+            <select
+              value={seciliGorevli}
+              onChange={(e) => setSeciliGorevli(e.target.value)}
+              className="w-full p-2.5 rounded-xl border-2 border-amber-400 font-bold text-xs bg-amber-50 text-slate-900 outline-none cursor-pointer focus:border-amber-600"
+            >
+              {gorevliler.length === 0 ? (
+                <option value="">Görevli Eklenmedi</option>
+              ) : (
+                gorevliler.map((g) => (
+                  <option key={g._id} value={`${g.adSoyad} (${g.unvan})`}>
+                    👤 {g.adSoyad} ({g.unvan})
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
         </div>
 
-        {/* 📄 YAZDIRILACAK VE EKRANDA GÖRÜNECEK PDF İÇERİK ALANI (KVKK UYUMLU) */}
+        {/* 📄 YAZDIRILACAK VE EKRANDA GÖRÜNECEK PDF İÇERİK ALANI */}
         <div
           id="pdf-rapor-alani"
           ref={pdfRef}
@@ -506,6 +601,82 @@ export default function RaporlarPage() {
                 })}
               </tbody>
             </table>
+          )}
+        </div>
+      </div>
+
+      {/* ✍️ YENİ GÖREVLİ / ANTRENÖR EKLEME VE LİSTELEME KARTI */}
+      <div className="bg-white p-6 sm:p-8 rounded-3xl border-2 border-slate-200 shadow-2xl space-y-6">
+        <div className="border-b border-slate-200 pb-3">
+          <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
+            <span>🛡️</span> Yoklama Onay Yetkilisi / Antrenör Kadrosu
+          </h2>
+          <p className="text-xs font-bold text-slate-500 mt-0.5">
+            Yoklama çıktılarının altına yetkili/antrenör olarak seçilecek
+            kişileri buradan ekleyebilir veya silebilirsiniz.
+          </p>
+        </div>
+
+        <form
+          onSubmit={gorevliEkle}
+          className="grid grid-cols-1 sm:grid-cols-3 gap-3"
+        >
+          <input
+            type="text"
+            placeholder="Görevli Ad Soyad (Örn: Ahmet Yılmaz)"
+            value={yeniGorevliAd}
+            onChange={(e) => setYeniGorevliAd(e.target.value)}
+            className="p-3 rounded-xl border-2 border-slate-300 text-xs font-bold bg-white outline-none focus:border-amber-500"
+          />
+
+          <select
+            value={yeniGorevliUnvan}
+            onChange={(e) => setYeniGorevliUnvan(e.target.value)}
+            className="p-3 rounded-xl border-2 border-slate-300 text-xs font-bold bg-white outline-none cursor-pointer"
+          >
+            <option value="Başantrenör">Başantrenör</option>
+            <option value="Antrenör">Antrenör</option>
+            <option value="Yardımcı Antrenör">Yardımcı Antrenör</option>
+            <option value="Salon Yöneticisi">Salon Yöneticisi</option>
+            <option value="Danışma / Danışman">Danışma / Danışman</option>
+          </select>
+
+          <button
+            type="submit"
+            className="bg-[#0F172A] hover:bg-slate-800 text-amber-400 font-black p-3 rounded-xl text-xs uppercase tracking-wider shadow cursor-pointer transition-all"
+          >
+            + Yeni Görevli Ekle
+          </button>
+        </form>
+
+        {/* ⚡ TANIMLI GÖREVLİ LİSTESİ VE SİLME BUTONU */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2">
+          {gorevliler.length === 0 ? (
+            <p className="text-xs font-bold text-slate-400 col-span-3 text-center py-4">
+              Henüz tanımlı görevli bulunmamaktadır.
+            </p>
+          ) : (
+            gorevliler.map((g) => (
+              <div
+                key={g._id}
+                className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex justify-between items-center text-xs shadow-sm hover:border-slate-300 transition-all"
+              >
+                <div>
+                  <p className="font-black text-slate-900">{g.adSoyad}</p>
+                  <p className="text-[10px] font-bold text-amber-700">
+                    {g.unvan}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => gorevliSil(g._id, g.adSoyad)}
+                  title="Görevliyi Sil"
+                  className="bg-rose-100 hover:bg-rose-200 text-rose-700 border border-rose-300 p-2 rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer flex items-center justify-center"
+                >
+                  🗑️
+                </button>
+              </div>
+            ))
           )}
         </div>
       </div>

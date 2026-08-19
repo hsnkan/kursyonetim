@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import mongoose from "mongoose";
+import { requireAuth } from "@/lib/auth";
 
-// Duyuru Şeması
 const DuyuruSchema = new mongoose.Schema(
   {
     baslik: { type: String, required: true },
@@ -19,9 +19,11 @@ const DuyuruSchema = new mongoose.Schema(
 
 const Duyuru = mongoose.models.Duyuru || mongoose.model("Duyuru", DuyuruSchema);
 
-// DUYURULARI GETİR
-export async function GET() {
+export async function GET(request) {
   try {
+    const auth = requireAuth(request);
+    if (auth.error) return auth.error;
+
     await dbConnect();
     const duyurular = await Duyuru.find({}).sort({ createdAt: -1 });
     return NextResponse.json({ success: true, data: duyurular });
@@ -33,9 +35,11 @@ export async function GET() {
   }
 }
 
-// YENİ DUYURU EKLE
 export async function POST(request) {
   try {
+    const auth = requireAuth(request);
+    if (auth.error) return auth.error;
+
     await dbConnect();
     const body = await request.json();
 
@@ -46,7 +50,16 @@ export async function POST(request) {
       );
     }
 
-    const yeniDuyuru = await Duyuru.create(body);
+    const yeniDuyuru = await Duyuru.create({
+      baslik: String(body.baslik).trim(),
+      icerik: String(body.icerik).trim(),
+      onemDerecesi: ["genel", "onemli", "acil"].includes(body.onemDerecesi)
+        ? body.onemDerecesi
+        : "genel",
+      yayinlayan: body.yayinlayan
+        ? String(body.yayinlayan).trim()
+        : "Akademi Yönetimi",
+    });
     return NextResponse.json({ success: true, data: yeniDuyuru });
   } catch (error) {
     return NextResponse.json(
@@ -56,9 +69,11 @@ export async function POST(request) {
   }
 }
 
-// DUYURU SİL
 export async function DELETE(request) {
   try {
+    const auth = requireAuth(request);
+    if (auth.error) return auth.error;
+
     await dbConnect();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");

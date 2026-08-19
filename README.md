@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Balans Cimnastik Akademi — Kurs Yönetim Sistemi
 
-## Getting Started
+Next.js tabanlı salon yönetim paneli: öğrenci kaydı, NFC yoklama, aidat/tahsilat takibi, raporlar.
 
-First, run the development server:
+## Gereksinimler
+
+- Node.js 18+
+- MongoDB Atlas (veya yerel MongoDB)
+- `.env.local` dosyası (aşağıya bakın)
+
+## Kurulum
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Tarayıcı: [http://localhost:3000](http://localhost:3000) → `/auth/login` sayfasına yönlendirilir.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Mimari: Tek İşletme, Tekrar Kurulabilir Kod
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Şu an:** Balans Cimnastik tek deployment olarak kullanır.
+- **Yeni işletme:** Aynı kod + yeni `.env` (`SITE_*`) + `public/logo.png` + yeni MongoDB → ayrı Vercel deploy.
+- **Detay:** [`docs/YENI-ISLETME-KURULUM.md`](docs/YENI-ISLETME-KURULUM.md)
+- **Şablon:** `.env.example`
 
-## Learn More
+## Ortam Değişkenleri (`.env.local`)
 
-To learn more about Next.js, take a look at the following resources:
+| Değişken | Açıklama |
+|---|---|
+| `MONGODB_URI` | MongoDB bağlantı adresi |
+| `JWT_SECRET` | Oturum token imzalama anahtarı (uzun, rastgele) |
+| `ADMIN_USERNAME` | Acil durum geliştirici kullanıcı adı |
+| `ADMIN_PASSWORD` | Acil durum geliştirici şifresi |
+| `DEVELOPER_PIN` | Geliştirici paneli / toplu silme PIN kodu |
+| `RESEND_API_KEY` | E-posta (şifre sıfırlama, lisans uyarısı) |
+| `CRON_SECRET` | Zamanlanmış görevler güvenlik anahtarı |
+| `SITE_ISLETME_ADI` | İşletme kısa adı (white-label) |
+| `SITE_ISLETME_TAM_ADI` | Tam işletme adı |
+| `SITE_LOGO_URL` | Logo yolu (varsayılan `/logo.png`) |
+| `SITE_WHATSAPP_IMZA` | WhatsApp mesaj imzası |
+| `SITE_TEKNIK_DESTEK_ADI` | Destek oturumu banner metni |
+| `SITE_MAIL_FROM_*` | E-posta gönderen adı ve adresi |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Önemli:** Gizli bilgileri (şifre, PIN, JWT) kaynak koda yazmayın. Yalnızca `.env.local` veya Vercel ortam değişkenlerinde tutun.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Güvenlik Mimarisi
 
-## Deploy on Vercel
+- **Giriş:** Sunucu tarafı JWT oturumu (`/api/auth/login`), HttpOnly çerez
+- **2FA:** Google Authenticator desteği (opsiyonel, kullanıcı bazlı)
+- **Middleware:** Korumalı sayfa ve API yönlendirmesi
+- **API:** Her endpoint `lib/auth.js` ile JWT doğrulaması yapar
+- **Mass assignment:** Öğrenci CRUD whitelist ile korunur
+- **Geliştirici işlemleri:** Oturum + `DEVELOPER_PIN` + canlıda toplu silme kapalı
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Önemli Sınırlamalar (ürün vaadi)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **WhatsApp:** Toplu gönderim kampanyası sunucuda kayıt altına alınır; mesajlar wa.me linki ile açılır (WhatsApp Business API yoksa otomatik arka planda gönderim yapılmaz).
+- **Muhasebe:** Aidat/tahsilat paneli; resmi muhasebe defteri veya bilanço değildir.
+- **NFC yoklama:** 13,56 MHz NFC kart + USB okuyucu (bilgisayar, ana yöntem). Android Chrome’da yedek telefon NFC okuma. iPhone tarayıcısı NFC kart okumaz.
+- **Audit log:** `/dashboard/audit` — tüm kritik işlemler sunucuda kaydedilir.
+
+## Yedekleme
+
+Detaylar: [`docs/BACKUP_RECOVERY.md`](docs/BACKUP_RECOVERY.md)
+
+MongoDB Atlas otomatik snapshot + `mongodump` ile manuel yedek önerilir.
+
+## İlk Admin Kullanıcısı
+
+```bash
+node scripts/seed-admin.js
+```
+
+Seed script çalıştırıldıktan sonra geçici şifreyi mutlaka değiştirin.

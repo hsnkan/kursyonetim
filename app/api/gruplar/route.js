@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import mongoose from "mongoose";
-
-// 🛡️ Sunucu Tarafı Oturum Doğrulama Yardımcısı
-function yetkiKontrolu(request) {
-  const sessionToken = request.cookies.get("session_token")?.value;
-  return !!sessionToken;
-}
+import { requireAuth, checkDeveloperPin } from "@/lib/auth";
 
 // Mongoose Grup Şeması
 const GrupSchema = new mongoose.Schema(
@@ -61,12 +56,8 @@ const DIKREK_GRUPLAR = [
 // ==========================================
 export async function GET(request) {
   try {
-    if (!yetkiKontrolu(request)) {
-      return NextResponse.json(
-        { success: false, error: "Yetkisiz erişim! Lütfen oturum açın." },
-        { status: 401 },
-      );
-    }
+    const auth = requireAuth(request);
+    if (auth.error) return auth.error;
 
     await dbConnect();
 
@@ -90,17 +81,10 @@ export async function GET(request) {
 // ==========================================
 export async function POST(request) {
   try {
-    if (!yetkiKontrolu(request)) {
-      return NextResponse.json(
-        { success: false, error: "Yetkisiz erişim! Lütfen oturum açın." },
-        { status: 401 },
-      );
-    }
+    const auth = requireAuth(request);
+    if (auth.error) return auth.error;
 
-    const pinHeader = request.headers.get("x-developer-pin");
-    const beklenenPin = process.env.DEVELOPER_PIN || "2026";
-
-    if (pinHeader !== beklenenPin) {
+    if (!checkDeveloperPin(request)) {
       return NextResponse.json(
         { success: false, error: "Geliştirici PIN kilit kodu hatalı!" },
         { status: 403 },
@@ -145,17 +129,10 @@ export async function POST(request) {
 // ==========================================
 export async function PUT(request) {
   try {
-    if (!yetkiKontrolu(request)) {
-      return NextResponse.json(
-        { success: false, error: "Yetkisiz erişim! Lütfen oturum açın." },
-        { status: 401 },
-      );
-    }
+    const auth = requireAuth(request);
+    if (auth.error) return auth.error;
 
-    const pinHeader = request.headers.get("x-developer-pin");
-    const beklenenPin = process.env.DEVELOPER_PIN || "2026";
-
-    if (pinHeader !== beklenenPin) {
+    if (!checkDeveloperPin(request)) {
       return NextResponse.json(
         { success: false, error: "Geliştirici PIN kilit kodu hatalı!" },
         { status: 403 },
@@ -198,17 +175,10 @@ export async function PUT(request) {
 // ==========================================
 export async function DELETE(request) {
   try {
-    if (!yetkiKontrolu(request)) {
-      return NextResponse.json(
-        { success: false, error: "Yetkisiz erişim! Lütfen oturum açın." },
-        { status: 401 },
-      );
-    }
+    const auth = requireAuth(request);
+    if (auth.error) return auth.error;
 
-    const pinHeader = request.headers.get("x-developer-pin");
-    const beklenenPin = process.env.DEVELOPER_PIN || "2026";
-
-    if (pinHeader !== beklenenPin) {
+    if (!checkDeveloperPin(request)) {
       return NextResponse.json(
         { success: false, error: "Geliştirici PIN kilit kodu hatalı!" },
         { status: 403 },

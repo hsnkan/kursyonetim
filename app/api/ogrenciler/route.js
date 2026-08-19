@@ -1,14 +1,10 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Ogrenci from "@/models/Ogrenci";
+import { requireAuth } from "@/lib/auth";
+import { logOgrenciIslem } from "@/lib/audit";
+import { normalizeNfcId } from "@/lib/nfc";
 
-// 🛡️ 1. Sunucu Tarafı Oturum Doğrulama Yardımcısı
-function yetkiKontrolu(request) {
-  const sessionToken = request.cookies.get("session_token")?.value;
-  return !!sessionToken;
-}
-
-// 🛡️ 2. Whitelist: İstemciden Gelen İzinli Alanları Süzme (Mass Assignment Koruması)
 function guvenliOgrenciVerisiSüz(body) {
   return {
     adSoyad: body.adSoyad ? String(body.adSoyad).trim() : "",
@@ -20,7 +16,7 @@ function guvenliOgrenciVerisiSüz(body) {
     grup: body.grup ? String(body.grup) : "",
     aylikUcret: Number(body.aylikUcret) || 2000,
     odemeGunu: Number(body.odemeGunu) || 1,
-    nfcKartId: body.nfcKartId ? String(body.nfcKartId).trim() : undefined,
+    nfcKartId: normalizeNfcId(body.nfcKartId),
     okulAnaokulu: body.okulAnaokulu ? String(body.okulAnaokulu) : "",
     sinifi: body.sinifi ? String(body.sinifi) : "",
     veliEposta: body.veliEposta ? String(body.veliEposta) : "",
@@ -47,19 +43,14 @@ function guvenliOgrenciVerisiSüz(body) {
           telefon: String(v.telefon || "").trim(),
         }))
       : [],
-    islemGecmisi: Array.isArray(body.islemGecmisi) ? body.islemGecmisi : [],
   };
 }
 
 export async function GET(request) {
   try {
     // 🔒 Oturum Kontrolü
-    if (!yetkiKontrolu(request)) {
-      return NextResponse.json(
-        { success: false, error: "Yetkisiz erişim! Lütfen oturum açın." },
-        { status: 401 },
-      );
-    }
+    const auth = requireAuth(request);
+    if (auth.error) return auth.error;
 
     await dbConnect();
     const { searchParams } = new URL(request.url);
@@ -78,12 +69,8 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     // 🔒 Oturum Kontrolü
-    if (!yetkiKontrolu(request)) {
-      return NextResponse.json(
-        { success: false, error: "Yetkisiz erişim! Lütfen oturum açın." },
-        { status: 401 },
-      );
-    }
+    const auth = requireAuth(request);
+    if (auth.error) return auth.error;
 
     await dbConnect();
     const body = await request.json();
@@ -99,6 +86,13 @@ export async function POST(request) {
     }
 
     const yeniOgrenci = await Ogrenci.create(guvenliVeri);
+
+    await logOgrenciIslem(auth.session, yeniOgrenci._id, {
+      islemTipi: "KAYIT",
+      detay: `${yeniOgrenci.adSoyad} sisteme kaydedildi (${yeniOgrenci.grup}).`,
+      entityLabel: yeniOgrenci.adSoyad,
+    });
+
     return NextResponse.json(
       { success: true, data: yeniOgrenci },
       { status: 201 },

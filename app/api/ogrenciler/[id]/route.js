@@ -1,14 +1,10 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Ogrenci from "@/models/Ogrenci";
+import { requireAuth } from "@/lib/auth";
+import { logOgrenciIslem, buildDiffDetay } from "@/lib/audit";
+import { normalizeNfcId } from "@/lib/nfc";
 
-// 🛡️ Sunucu Tarafı Oturum Denetimi
-function yetkiKontrolu(request) {
-  const sessionToken = request.cookies.get("session_token")?.value;
-  return !!sessionToken;
-}
-
-// 🛡️ Whitelist: Güncellenebilir İzinli Alanları Süzme (Mass Assignment Koruması)
 function guvenliGuncellemeSüz(body) {
   const guncelData = {};
 
@@ -27,10 +23,11 @@ function guvenliGuncellemeSüz(body) {
     guncelData.aylikUcret = Number(body.aylikUcret);
   if (body.odemeGunu !== undefined)
     guncelData.odemeGunu = Number(body.odemeGunu);
-  if (body.nfcKartId !== undefined)
-    guncelData.nfcKartId = body.nfcKartId
-      ? String(body.nfcKartId).trim()
-      : undefined;
+
+  if (body.nfcKartId !== undefined) {
+    guncelData.nfcKartId = normalizeNfcId(body.nfcKartId);
+  }
+
   if (body.okulAnaokulu !== undefined)
     guncelData.okulAnaokulu = String(body.okulAnaokulu);
   if (body.sinifi !== undefined) guncelData.sinifi = String(body.sinifi);
@@ -74,22 +71,14 @@ function guvenliGuncellemeSüz(body) {
       telefon: String(v.telefon || "").trim(),
     }));
   }
-  if (body.islemGecmisi !== undefined && Array.isArray(body.islemGecmisi)) {
-    guncelData.islemGecmisi = body.islemGecmisi;
-  }
 
   return guncelData;
 }
 
-// 🗑️ ÖĞRENCİ SİLME (DELETE)
 export async function DELETE(request, context) {
   try {
-    if (!yetkiKontrolu(request)) {
-      return NextResponse.json(
-        { success: false, error: "Yetkisiz erişim! Lütfen giriş yapın." },
-        { status: 401 },
-      );
-    }
+    const auth = requireAuth(request);
+    if (auth.error) return auth.error;
 
     await dbConnect();
     const { params } = context;
@@ -105,6 +94,12 @@ export async function DELETE(request, context) {
       );
     }
 
+    await logOgrenciIslem(auth.session, id, {
+      islemTipi: "SİLME",
+      detay: `${silinen.adSoyad} kaydı silindi.`,
+      entityLabel: silinen.adSoyad,
+    });
+
     return NextResponse.json({ success: true, message: "Öğrenci silindi" });
   } catch (error) {
     console.error("Silme Hatası:", error);
@@ -115,20 +110,23 @@ export async function DELETE(request, context) {
   }
 }
 
-// ✏️ ÖĞRENCİ BİLGİLERİNİ GÜNCELLEME (PUT)
 export async function PUT(request, context) {
   try {
-    if (!yetkiKontrolu(request)) {
-      return NextResponse.json(
-        { success: false, error: "Yetkisiz erişim! Lütfen giriş yapın." },
-        { status: 401 },
-      );
-    }
+    const auth = requireAuth(request);
+    if (auth.error) return auth.error;
 
     await dbConnect();
     const { params } = context;
     const resolvedParams = await params;
     const id = resolvedParams.id;
+
+    const mevcut = await Ogrenci.findById(id);
+    if (!mevcut) {
+      return NextResponse.json(
+        { success: false, error: "Öğrenci bulunamadı" },
+        { status: 404 },
+      );
+    }
 
     const body = await request.json();
     const guvenliVeri = guvenliGuncellemeSüz(body);
@@ -139,12 +137,17 @@ export async function PUT(request, context) {
       { new: true, runValidators: true },
     );
 
-    if (!guncellenen) {
-      return NextResponse.json(
-        { success: false, error: "Öğrenci bulunamadı" },
-        { status: 404 },
-      );
-    }
+    const diff = buildDiffDetay(
+      mevcut.toObject(),
+      guncellenen.toObject(),
+      Object.keys(guvenliVeri),
+    );
+
+    await logOgrenciIslem(auth.session, id, {
+      islemTipi: "GÜNCELLEME",
+      detay: diff,
+      entityLabel: guncellenen.adSoyad,
+    });
 
     return NextResponse.json({ success: true, data: guncellenen });
   } catch (error) {
@@ -156,29 +159,29 @@ export async function PUT(request, context) {
   }
 }
 
-// ⏸️ ÖĞRENCİ DONDURMA / DURUM DEĞİŞTİRME (PATCH)
 export async function PATCH(request, context) {
   try {
-    if (!yetkiKontrolu(request)) {
-      return NextResponse.json(
-        { success: false, error: "Yetkisiz erişim! Lütfen giriş yapın." },
-        { status: 401 },
-      );
-    }
+    const auth = requireAuth(request);
+    if (auth.error) return auth.error;
 
     await dbConnect();
     const { params } = context;
     const resolvedParams = await params;
     const id = resolvedParams.id;
 
+    const mevcut = await Ogrenci.findById(id);
+    if (!mevcut) {
+      return NextResponse.json(
+        { success: false, error: "Öğrenci bulunamadı" },
+        { status: 404 },
+      );
+    }
+
     const body = await request.json();
     const guncelData = {};
 
     if (body.durum)
       guncelData.durum = body.durum === "pasif" ? "pasif" : "aktif";
-    if (body.islemGecmisi && Array.isArray(body.islemGecmisi)) {
-      guncelData.islemGecmisi = body.islemGecmisi;
-    }
 
     const guncellenen = await Ogrenci.findByIdAndUpdate(
       id,
@@ -186,11 +189,13 @@ export async function PATCH(request, context) {
       { new: true },
     );
 
-    if (!guncellenen) {
-      return NextResponse.json(
-        { success: false, error: "Öğrenci bulunamadı" },
-        { status: 404 },
-      );
+    if (guncelData.durum) {
+      const islemTipi = guncelData.durum === "pasif" ? "DONDURMA" : "AKTİF_ETME";
+      await logOgrenciIslem(auth.session, id, {
+        islemTipi,
+        detay: `${guncellenen.adSoyad} durumu '${guncelData.durum}' olarak değiştirildi.`,
+        entityLabel: guncellenen.adSoyad,
+      });
     }
 
     return NextResponse.json({ success: true, data: guncellenen });

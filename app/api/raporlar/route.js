@@ -2,9 +2,13 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Ogrenci from "@/models/Ogrenci";
 import Yoklama from "@/models/Yoklama";
+import { requireAuth } from "@/lib/auth";
 
 export async function GET(request) {
   try {
+    const auth = requireAuth(request);
+    if (auth.error) return auth.error;
+
     await dbConnect();
 
     const { searchParams } = new URL(request.url);

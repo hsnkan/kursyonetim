@@ -37,6 +37,14 @@ export default function OgrenciYonetimPage() {
     telefon: "",
   });
 
+  // 🧹 NFC KART ID TEMİZLEME YARDIMCISI (Frontend Süzgeci)
+  const nfcIdTemizle = (val) => {
+    if (!val) return "";
+    const strVal = String(val).trim();
+    const temiz = strVal.replace(/[^a-zA-Z0-9]/g, ""); // Özel karakterleri kaldır
+    return temiz.replace(/^0+/, "") || temiz; // Baştaki '0'ları kaldır
+  };
+
   // 📝 KAPSAMLI YENİ KAYIT FORMU STATE'İ
   const [form, setForm] = useState({
     adSoyad: "",
@@ -266,8 +274,13 @@ export default function OgrenciYonetimPage() {
       tarih: new Date().toISOString(),
     };
 
+    // Güncelleme yaparken de NFC Id'nin temizlenmiş halini ve aylık ücretin sayısal halini kaydediyoruz
     const guncelPayload = {
       ...duzenleForm,
+      aylikUcret: Number(duzenleForm.aylikUcret) || 0,
+      nfcKartId: duzenleForm.nfcKartId
+        ? nfcIdTemizle(duzenleForm.nfcKartId)
+        : undefined,
       fotoUrl: fotoUrl,
       islemGecmisi: [...(duzenleForm.islemGecmisi || []), yeniIslemLogu],
     };
@@ -348,9 +361,10 @@ export default function OgrenciYonetimPage() {
 
     const payload = {
       ...form,
+      aylikUcret: Number(form.aylikUcret) || 0,
       fotoUrl: fotoUrl,
       veliListesi: eklenenVeliler,
-      nfcKartId: form.nfcKartId || undefined,
+      nfcKartId: form.nfcKartId ? nfcIdTemizle(form.nfcKartId) : undefined,
     };
 
     const res = await fetch("/api/ogrenciler", {
@@ -811,7 +825,7 @@ export default function OgrenciYonetimPage() {
       "Haziran",
       "Temmuz",
       "Ağustos",
-      "Eylül",
+      "Eylul",
       "Ekim",
       "Kasım",
       "Aralık",
@@ -899,6 +913,11 @@ export default function OgrenciYonetimPage() {
             <p className="text-sm font-mono font-black text-amber-600 mt-1">
               {seciliOgrenci.nfcKartId || "Tanımlı Değil"}
             </p>
+            {!seciliOgrenci.nfcKartId && (
+              <p className="mt-2 text-[10px] font-bold text-slate-500">
+                Düzenle → USB okuyucu ile kart okutarak tanımlayın
+              </p>
+            )}
           </div>
 
           <div className="bg-white p-5 rounded-3xl border-2 border-slate-200 shadow-md">
@@ -1040,7 +1059,7 @@ export default function OgrenciYonetimPage() {
 
             <div className="bg-white p-6 rounded-3xl border-2 border-slate-200 shadow-xl space-y-3">
               <h3 className="text-base font-black text-slate-900 border-b border-slate-200 pb-2 flex items-center gap-2">
-                <span>👨‍👩‍👧</span> Veli İletişim Bilgileri
+                <span>👨‍组织‍👧</span> Veli İletişim Bilgileri
               </h3>
 
               <div className="space-y-2">
@@ -1358,6 +1377,7 @@ export default function OgrenciYonetimPage() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
+                    {/* ⚡ DÜZENLEME MODALI AİDAT İNPUT GÜNCELLEMESİ */}
                     <div>
                       <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
                         Aylık Aidat Tutarı (₺) [100 TL Adım]
@@ -1365,13 +1385,19 @@ export default function OgrenciYonetimPage() {
                       <input
                         type="number"
                         step="100"
-                        value={duzenleForm.aylikUcret || 2000}
-                        onChange={(e) =>
+                        value={
+                          duzenleForm.aylikUcret === 0 ||
+                          duzenleForm.aylikUcret === ""
+                            ? ""
+                            : (duzenleForm.aylikUcret ?? "")
+                        }
+                        onChange={(e) => {
+                          const val = e.target.value;
                           setDuzenleForm({
                             ...duzenleForm,
-                            aylikUcret: Number(e.target.value),
-                          })
-                        }
+                            aylikUcret: val === "" ? "" : Number(val),
+                          });
+                        }}
                         className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
                       />
                     </div>
@@ -1771,6 +1797,7 @@ export default function OgrenciYonetimPage() {
                     />
                   </div>
 
+                  {/* ⚡ GÜNCELLEME MODALI NFC KART INPUT SÜZGEÇLİ */}
                   <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-300">
                     <label className="block text-[10px] font-black uppercase text-amber-900 mb-1">
                       📡 NFC Kart ID
@@ -1781,7 +1808,7 @@ export default function OgrenciYonetimPage() {
                       onChange={(e) =>
                         setDuzenleForm({
                           ...duzenleForm,
-                          nfcKartId: e.target.value,
+                          nfcKartId: nfcIdTemizle(e.target.value),
                         })
                       }
                       className="w-full p-2 rounded-lg border border-amber-400 font-extrabold text-xs bg-white outline-none"
@@ -2059,6 +2086,7 @@ export default function OgrenciYonetimPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-2">
+                {/* ⚡ YENİ KAYIT FORMU AİDAT İNPUT GÜNCELLEMESİ */}
                 <div>
                   <label className="block text-[10px] font-black uppercase text-slate-700 mb-1">
                     Aylık Aidat Tutarı (₺) [100 TL Adım]
@@ -2067,10 +2095,18 @@ export default function OgrenciYonetimPage() {
                     type="number"
                     step="100"
                     placeholder="Örn: 2000"
-                    value={form.aylikUcret}
-                    onChange={(e) =>
-                      setForm({ ...form, aylikUcret: Number(e.target.value) })
+                    value={
+                      form.aylikUcret === 0 || form.aylikUcret === ""
+                        ? ""
+                        : (form.aylikUcret ?? "")
                     }
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setForm({
+                        ...form,
+                        aylikUcret: val === "" ? "" : Number(val),
+                      });
+                    }}
                     className="w-full p-2 rounded-xl border border-slate-300 font-bold text-xs bg-white outline-none"
                   />
                 </div>
@@ -2427,6 +2463,7 @@ export default function OgrenciYonetimPage() {
                 />
               </div>
 
+              {/* ⚡ YENİ KAYIT FORMU NFC KART INPUT SÜZGEÇLİ */}
               <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-300">
                 <label className="block text-[10px] font-black uppercase text-amber-900 mb-1">
                   📡 NFC Kart ID
@@ -2435,9 +2472,12 @@ export default function OgrenciYonetimPage() {
                   type="text"
                   value={form.nfcKartId}
                   onChange={(e) =>
-                    setForm({ ...form, nfcKartId: e.target.value })
+                    setForm({
+                      ...form,
+                      nfcKartId: nfcIdTemizle(e.target.value),
+                    })
                   }
-                  placeholder="NFC Kartı Okutun..."
+                  placeholder="USB okuyucu ile 13,56 MHz kart okutun..."
                   className="w-full p-2 rounded-lg border border-amber-400 font-extrabold text-xs bg-white outline-none"
                 />
               </div>

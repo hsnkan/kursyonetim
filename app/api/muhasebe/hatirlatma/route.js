@@ -1,13 +1,25 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Odeme from "@/models/Odeme";
+import Ogrenci from "@/models/Ogrenci";
+import { requireAuth } from "@/lib/auth";
+import { logOgrenciIslem } from "@/lib/audit";
 
 export async function POST(request) {
   try {
+    const auth = requireAuth(request);
+    if (auth.error) return auth.error;
+
     await dbConnect();
     const { odemeId } = await request.json();
 
-    // Ödeme kaydına hatirlatmaGonderildi: true ve gönderim tarihini ekle
+    if (!odemeId) {
+      return NextResponse.json(
+        { success: false, error: "Ödeme ID zorunludur." },
+        { status: 400 },
+      );
+    }
+
     const guncelOdeme = await Odeme.findByIdAndUpdate(
       odemeId,
       {
@@ -17,7 +29,16 @@ export async function POST(request) {
       { new: true },
     );
 
-    // Burada entegre edilecek SMS/WhatsApp servisine istek atılabilir.
+    if (guncelOdeme?.ogrenciId) {
+      const ogrenci = await Ogrenci.findById(guncelOdeme.ogrenciId);
+      if (ogrenci) {
+        await logOgrenciIslem(auth.session, ogrenci._id, {
+          islemTipi: "AİDAT_HATIRLATMA",
+          detay: `Aidat hatırlatma mesajı gönderildi (${guncelOdeme.tutar} ₺)`,
+          entityLabel: ogrenci.adSoyad,
+        });
+      }
+    }
 
     return NextResponse.json({
       success: true,

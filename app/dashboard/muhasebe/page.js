@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useBranding } from "@/app/components/BrandingProvider";
 
 export default function MuhasebePage() {
+  const branding = useBranding();
   const simdikiYil = new Date().getFullYear();
   const simdikiAy = new Date().getMonth() + 1;
 
@@ -146,6 +148,13 @@ export default function MuhasebePage() {
 
       if (data.success) {
         alert("✅ Ödeme başarıyla tahsil edildi olarak kaydedildi!");
+        setOdemeler((prev) =>
+          prev.filter(
+            (o) =>
+              o._id !== odeme._id &&
+              o.ogrenciId?._id !== odeme.ogrenciId?._id,
+          ),
+        );
         odemeleriGetir();
       } else {
         alert("✕ Hata: " + (data.error || "İşlem gerçekleştirilemedi."));
@@ -178,7 +187,7 @@ export default function MuhasebePage() {
       if (veliTel) {
         const temizTel = veliTel.replace(/\D/g, "");
         const tel = temizTel.startsWith("90") ? temizTel : `90${temizTel}`;
-        const mesaj = `Sayın ${veliAd},\n\n*${ogrenciAd}* isimli öğrencimizin aylık kurs aidat ödeme zamanı gelmiştir. Ödemenizi gerçekleştirdiyseniz bu mesajı dikkate almayınız. İyi günler dileriz.\n\nBalans Cimnastik Akademi 🤸‍♀️`;
+        const mesaj = `Sayın ${veliAd},\n\n*${ogrenciAd}* isimli öğrencimizin aylık kurs aidat ödeme zamanı gelmiştir. Ödemenizi gerçekleştirdiyseniz bu mesajı dikkate almayınız. İyi günler dileriz.\n\n${branding.whatsappImza}`;
 
         window.open(
           `https://wa.me/${tel}?text=${encodeURIComponent(mesaj)}`,
@@ -229,24 +238,43 @@ export default function MuhasebePage() {
       currency: "TRY",
     }).format(val || 0);
 
+  const bekleyenOdemeler = odemeler.filter((m) => m.durum !== "odendi");
+
   const gosterilecekOdemeler = sadeceOdemesiGelenler
-    ? odemeler.filter((m) => m.durum !== "odendi")
-    : odemeler;
+    ? bekleyenOdemeler.filter(
+        (m) =>
+          String(m._id).startsWith("sanal_") ||
+          m.durum === "bekliyor" ||
+          m.durum === "gecikti",
+      )
+    : bekleyenOdemeler;
 
   // 📈 LİNEER SVG GRAFİK KOORDİNAT HESAPLAMALARI
   const hedefTrend = maliData.hedefAylikTrend || Array(12).fill(0);
   const kiyasTrend = maliData.kiyasAylikTrend || Array(12).fill(0);
 
-  const maxVal = Math.max(...hedefTrend, ...kiyasTrend, 1000);
+  const grafikMax = 1000000;
+  const grafikAdim = 50000;
+  const yEksenDegerleri = Array.from(
+    { length: grafikMax / grafikAdim + 1 },
+    (_, i) => i * grafikAdim,
+  );
 
   const svgGenislik = 800;
-  const svgYukseklik = 220;
-  const marjX = 40;
-  const marjY = 30;
+  const svgYukseklik = 360;
+  const marjX = 88;
+  const marjY = 24;
 
-  const getX = (index) => marjX + (index * (svgGenislik - 2 * marjX)) / 11;
+  const getX = (index) => marjX + (index * (svgGenislik - marjX - 20)) / 11;
   const getY = (val) =>
-    svgYukseklik - marjY - (val * (svgYukseklik - 2 * marjY)) / maxVal;
+    svgYukseklik -
+    marjY -
+    (Math.min(val, grafikMax) * (svgYukseklik - 2 * marjY)) / grafikMax;
+
+  const formatGrafikTL = (val) =>
+    val >= 1000000
+      ? "1.000.000"
+      : new Intl.NumberFormat("tr-TR").format(val);
 
   const hedefPath = hedefTrend
     .map((v, i) => `${i === 0 ? "M" : "L"} ${getX(i)} ${getY(v)}`)
@@ -500,21 +528,31 @@ export default function MuhasebePage() {
                 viewBox={`0 0 ${svgGenislik} ${svgYukseklik}`}
                 className="w-full h-auto min-w-[600px] overflow-visible"
               >
-                {/* Yatay Izgara Çizgileri */}
-                {[0, 0.25, 0.5, 0.75, 1].map((ratio, idx) => {
-                  const yVal =
-                    svgYukseklik - marjY - ratio * (svgYukseklik - 2 * marjY);
+                {/* Yatay Izgara + Sol Y Ekseni (50.000 – 1.000.000) */}
+                {yEksenDegerleri.map((deger) => {
+                  const yVal = getY(deger);
                   return (
-                    <line
-                      key={idx}
-                      x1={marjX}
-                      y1={yVal}
-                      x2={svgGenislik - marjX}
-                      y2={yVal}
-                      stroke="#334155"
-                      strokeDasharray="4 4"
-                      strokeWidth="1"
-                    />
+                    <g key={`y-${deger}`}>
+                      <line
+                        x1={marjX}
+                        y1={yVal}
+                        x2={svgGenislik - 20}
+                        y2={yVal}
+                        stroke={deger === 0 ? "#475569" : "#334155"}
+                        strokeDasharray={deger === 0 ? "0" : "4 4"}
+                        strokeWidth="1"
+                      />
+                      <text
+                        x={marjX - 8}
+                        y={yVal + 4}
+                        fill="#94A3B8"
+                        fontSize="9"
+                        fontWeight="bold"
+                        textAnchor="end"
+                      >
+                        {formatGrafikTL(deger)}
+                      </text>
+                    </g>
                   );
                 })}
 

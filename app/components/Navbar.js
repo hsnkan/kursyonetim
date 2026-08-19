@@ -1,12 +1,31 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useBranding } from "@/app/components/BrandingProvider";
 
 export default function Navbar() {
   const pathname = usePathname();
-  const router = useRouter();
+  const branding = useBranding();
+  const [userRole, setUserRole] = useState(null);
+
+  // 👤 Giriş yapan kullanıcının rolünü alma
+  useEffect(() => {
+    const checkUserRole = async () => {
+      try {
+        const res = await fetch("/api/auth/me");
+        const data = await res.json();
+        if (data.success && data.user) {
+          setUserRole(data.user.rol || data.user.role);
+        }
+      } catch {
+        // Rol çekilemezse müşteri olarak varsay
+      }
+    };
+    checkUserRole();
+  }, []);
 
   const isActive = (path) =>
     pathname === path || pathname.startsWith(`${path}/`);
@@ -53,7 +72,6 @@ export default function Navbar() {
     {
       name: "Duyurular",
       href: "/dashboard/duyurular",
-      // Hoparlör / Megafon İkonu
       icon: (
         <svg
           className="w-5 h-5 text-amber-400"
@@ -109,11 +127,11 @@ export default function Navbar() {
       ),
     },
     {
-      name: "Geliştirici Paneli",
-      href: "/dashboard/gelistirici",
+      name: "İşlem Geçmişi",
+      href: "/dashboard/audit",
       icon: (
         <svg
-          className="w-5 h-5 text-purple-400"
+          className="w-5 h-5 text-slate-300"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -122,22 +140,64 @@ export default function Navbar() {
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth={2}
-            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
       ),
     },
+    {
+      name: "Profil & Güvenlik",
+      href: "/dashboard/profil",
+      icon: (
+        <svg
+          className="w-5 h-5 text-emerald-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+          />
+        </svg>
+      ),
+    },
+    // 👑 Sadece 'developer' rolündeki kullanıcılara görünecek bağlantı
+    ...(userRole === "developer"
+      ? [
+          {
+            name: "Geliştirici Paneli",
+            href: "/admin/kullanicilar",
+            isDev: true,
+            icon: (
+              <svg
+                className="w-5 h-5 text-purple-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                />
+              </svg>
+            ),
+          },
+        ]
+      : []),
   ];
 
   const cikisYap = async () => {
     try {
-      // 🔒 Sunucuda HttpOnly Cookie'yi sil
       await fetch("/api/auth/logout", { method: "POST" });
     } catch (err) {
       console.error("Çıkış yaparken hata:", err);
     } finally {
-      localStorage.removeItem("isLoggedIn");
-      window.location.href = "/";
+      window.location.href = "/auth/login";
     }
   };
 
@@ -150,20 +210,32 @@ export default function Navbar() {
           className="p-6 border-b border-slate-800 flex items-center space-x-3 group block"
         >
           <div className="relative w-11 h-11 rounded-full overflow-hidden border-2 border-amber-400 shadow-md group-hover:scale-105 transition-transform">
-            <Image
-              src="/logo.png"
-              alt="Balans Logo"
-              fill
-              className="object-cover"
-              priority
-            />
+            {branding.logoSrc?.startsWith("data:") ? (
+              <img
+                src={branding.logoSrc}
+                alt={`${branding.salonAdi} Logo`}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <Image
+                src={branding.logoSrc || "/logo.png"}
+                alt={`${branding.salonAdi} Logo`}
+                fill
+                className="object-cover"
+                priority
+                unoptimized={Boolean(branding.logoBase64)}
+              />
+            )}
           </div>
           <div>
-            <h2 className="font-black text-amber-400 tracking-wider text-base uppercase leading-tight">
-              BALANS
+            <h2
+              className="font-black tracking-wider text-base uppercase leading-tight"
+              style={{ color: branding.temaRengi || "#f59e0b" }}
+            >
+              {(branding.salonAdi || "BALANS").split(" ")[0]}
             </h2>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              Yönetim Paneli
+              {branding.altBaslik || "Yönetim Paneli"}
             </p>
           </div>
         </Link>
@@ -172,7 +244,7 @@ export default function Navbar() {
         <nav className="p-4 space-y-2">
           {navLinks.map((link) => {
             const active = isActive(link.href);
-            const isDev = link.href === "/dashboard/gelistirici";
+            const isDev = link.isDev;
             return (
               <Link
                 key={link.href}

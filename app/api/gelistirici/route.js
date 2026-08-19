@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import mongoose from "mongoose";
+import { requireDeveloperPin } from "@/lib/auth";
 
-// Mongoose Modellerinin Tanımları
 const OgrenciSchema = new mongoose.Schema({}, { strict: false });
 const YoklamaSchema = new mongoose.Schema({}, { strict: false });
 const OdemeSchema = new mongoose.Schema({}, { strict: false });
@@ -16,30 +16,35 @@ const Odeme =
   mongoose.models.Muhasebe ||
   mongoose.model("Odeme", OdemeSchema);
 
-// 🔑 Geliştirici PIN Kontrol Fonksiyonu
-function checkPin(request) {
-  const pinHeader = request.headers.get("x-developer-pin");
-  const beklenenPin = process.env.DEVELOPER_PIN || "2026";
-  return pinHeader === beklenenPin;
-}
+const TEHLIKELI_ISLEMLER = [
+  "tum_verileri_sifirla",
+  "tum_ogrenciler",
+  "tum_yoklama",
+];
 
-// ==========================================
-// 🚨 VERİ TEMİZLEME VE SIFIRLAMA (DELETE)
-// ==========================================
 export async function DELETE(request) {
   try {
-    if (!checkPin(request)) {
-      return NextResponse.json(
-        { success: false, error: "Yetkisiz erişim! PIN kodu hatalı." },
-        { status: 403 },
-      );
-    }
+    const auth = requireDeveloperPin(request);
+    if (auth.error) return auth.error;
 
     await dbConnect();
     const { searchParams } = new URL(request.url);
     const islem = searchParams.get("islem");
 
-    // 🧹 TÜM SİSTEMİ TEK TIKLA SIFIRLAMA
+    if (
+      process.env.NODE_ENV === "production" &&
+      TEHLIKELI_ISLEMLER.includes(islem)
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Toplu silme işlemleri canlı ortamda devre dışıdır. MongoDB Atlas yedeğinden kurtarma kullanın.",
+        },
+        { status: 403 },
+      );
+    }
+
     if (islem === "tum_verileri_sifirla") {
       await Promise.all([
         Ogrenci.deleteMany({}),
@@ -53,7 +58,6 @@ export async function DELETE(request) {
       });
     }
 
-    // Bugünü Temizle
     if (islem === "bugun_yoklama") {
       const bugunBaslangic = new Date();
       bugunBaslangic.setHours(0, 0, 0, 0);
@@ -69,7 +73,6 @@ export async function DELETE(request) {
       });
     }
 
-    // Tüm Yoklamaları Temizle
     if (islem === "tum_yoklama") {
       await Yoklama.deleteMany({});
       return NextResponse.json({
@@ -78,7 +81,6 @@ export async function DELETE(request) {
       });
     }
 
-    // Tüm Öğrencileri Temizle
     if (islem === "tum_ogrenciler") {
       await Ogrenci.deleteMany({});
       return NextResponse.json({
@@ -99,22 +101,14 @@ export async function DELETE(request) {
   }
 }
 
-// ==========================================
-// 📊 EXCEL TOPLU ÖĞRENCİ VE ÖDEME YÜKLEME (POST)
-// ==========================================
 export async function POST(request) {
   try {
-    if (!checkPin(request)) {
-      return NextResponse.json(
-        { success: false, error: "Yetkisiz erişim! PIN kodu hatalı." },
-        { status: 403 },
-      );
-    }
+    const auth = requireDeveloperPin(request);
+    if (auth.error) return auth.error;
 
     await dbConnect();
     const body = await request.json();
 
-    // 💳 GEÇMİŞ DÖNEM ÖDEMELERİNİ EXCEL'DEN YÜKLEME
     if (body.islem === "gecmis_odeme_yukle" && Array.isArray(body.odemeler)) {
       const tumOgrenciler = await Ogrenci.find({});
       let basarili = 0;
@@ -124,7 +118,6 @@ export async function POST(request) {
         const ogrenciAd = (item.adSoyad || "").trim().toLowerCase();
         if (!ogrenciAd) continue;
 
-        // Öğrenciyi veritabanında isme göre bul
         const ogrenci = tumOgrenciler.find(
           (o) => (o.adSoyad || "").trim().toLowerCase() === ogrenciAd,
         );
@@ -135,15 +128,14 @@ export async function POST(request) {
           const yil = Number(item.yil) || new Date().getFullYear();
           const ay = Number(item.ay) || new Date().getMonth() + 1;
           const odemeGunu = Number(item.odemeGunu) || ogrenci.odemeGunu || 1;
-
           const odemeTarihiObj = new Date(yil, ay - 1, odemeGunu);
 
           await Odeme.create({
             ogrenciId: ogrenci._id,
-            tutar: tutar,
+            tutar,
             durum: "odendi",
-            yil: yil,
-            ay: ay,
+            yil,
+            ay,
             sonOdemeTarihi: odemeTarihiObj,
             odemeTarihi: item.odemeTarihi
               ? new Date(item.odemeTarihi)
@@ -168,12 +160,17 @@ export async function POST(request) {
       });
     }
 
-    // 🎓 TOPLU ÖĞRENCİ YÜKLEME
     if (Array.isArray(body.yuklenecekler)) {
       let yuklenen = 0;
       for (const ogrenci of body.yuklenecekler) {
         if (ogrenci.adSoyad) {
-          await Ogrenci.create(ogrenci);
+          await Ogrenci.create({
+            adSoyad: String(ogrenci.adSoyad).trim(),
+            grup: ogrenci.grup ? String(ogrenci.grup) : "",
+            aylikUcret: Number(ogrenci.aylikUcret) || 2000,
+            odemeGunu: Number(ogrenci.odemeGunu) || 1,
+            durum: "aktif",
+          });
           yuklenen++;
         }
       }

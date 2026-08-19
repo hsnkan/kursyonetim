@@ -2,20 +2,13 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Odeme from "@/models/Odeme";
 import Ogrenci from "@/models/Ogrenci";
-
-function yetkiKontrolu(request) {
-  const sessionToken = request.cookies.get("session_token")?.value;
-  return !!sessionToken;
-}
+import { requireAuth } from "@/lib/auth";
+import { logOgrenciIslem } from "@/lib/audit";
 
 export async function POST(request) {
   try {
-    if (!yetkiKontrolu(request)) {
-      return NextResponse.json(
-        { success: false, error: "Yetkisiz erişim! Lütfen giriş yapın." },
-        { status: 401 },
-      );
-    }
+    const auth = requireAuth(request);
+    if (auth.error) return auth.error;
 
     await dbConnect();
     const body = await request.json();
@@ -60,6 +53,12 @@ export async function POST(request) {
         { new: true },
       );
 
+      await logOgrenciIslem(auth.session, hedefOgrenciId, {
+        islemTipi: "AİDAT_TAHSİLAT",
+        detay: `Aidat ödemesi tahsil edildi (${odemeTutar} ₺)`,
+        entityLabel: ogrenci.adSoyad,
+      });
+
       return NextResponse.json({ success: true, data: guncelOdeme });
     }
 
@@ -78,18 +77,10 @@ export async function POST(request) {
       aciklama: "Kasa ekranından tahsilat alındı.",
     });
 
-    // 📜 Öğrencinin kronolojik işlem geçmişine log ekle
-    const yeniLog = {
+    await logOgrenciIslem(auth.session, hedefOgrenciId, {
       islemTipi: "AİDAT_TAHSİLAT",
       detay: `Aidat ödemesi tahsil edildi (${odemeTutar} ₺)`,
-      tarih: simdi,
-    };
-
-    const mevcutLoglar = Array.isArray(ogrenci.islemGecmisi)
-      ? ogrenci.islemGecmisi
-      : [];
-    await Ogrenci.findByIdAndUpdate(hedefOgrenciId, {
-      islemGecmisi: [...mevcutLoglar, yeniLog],
+      entityLabel: ogrenci.adSoyad,
     });
 
     return NextResponse.json({ success: true, data: yeniOdeme });

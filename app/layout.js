@@ -1,8 +1,11 @@
 import "@/app/globals.css";
+import { getSiteConfig } from "@/lib/siteConfig";
+
+const site = getSiteConfig();
 
 export const metadata = {
-  title: "Balans Cimnastik - Kurs Yönetim Sistemi",
-  description: "NFC Yoklama ve Öğrenci Yönetimi",
+  title: site.sistemBaslik,
+  description: site.sistemAciklama,
 };
 
 export default function RootLayout({ children }) {
@@ -12,10 +15,9 @@ export default function RootLayout({ children }) {
         suppressHydrationWarning={true}
         className="relative min-h-screen bg-slate-950 text-slate-100 antialiased overflow-x-hidden"
       >
-        {/* 🖼️ TÜM SAYFALARIN ARKA PLANINA KAPLANAN LOGO (FILIGRAN) */}
         <div
           className="fixed inset-0 pointer-events-none z-0 bg-center bg-no-repeat bg-contain opacity-10"
-          style={{ backgroundImage: "url('/logo.png')" }}
+          style={{ backgroundImage: `url('${site.logoUrl}')` }}
         />
 
         {/* İÇERİK KATMANI */}

@@ -1,21 +1,13 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Ogrenci from "@/models/Ogrenci";
-
-// 🛡️ Sunucu Tarafı Oturum Denetimi
-function yetkiKontrolu(request) {
-  const sessionToken = request.cookies.get("session_token")?.value;
-  return !!sessionToken;
-}
+import { requireAuth } from "@/lib/auth";
+import { logOgrenciIslem } from "@/lib/audit";
 
 export async function PATCH(request, context) {
   try {
-    if (!yetkiKontrolu(request)) {
-      return NextResponse.json(
-        { success: false, error: "Yetkisiz erişim! Lütfen giriş yapın." },
-        { status: 401 },
-      );
-    }
+    const auth = requireAuth(request);
+    if (auth.error) return auth.error;
 
     await dbConnect();
     const { params } = context;
@@ -58,6 +50,12 @@ export async function PATCH(request, context) {
 
     ogrenci.grup = yeniGrup;
     await ogrenci.save();
+
+    await logOgrenciIslem(auth.session, id, {
+      islemTipi: "TRANSFER",
+      detay: `Grup transferi: '${ogrenci.grupTransferGecmisi.at(-1)?.eskiGrup}' ➔ '${yeniGrup}'`,
+      entityLabel: ogrenci.adSoyad,
+    });
 
     return NextResponse.json({ success: true, data: ogrenci });
   } catch (error) {
