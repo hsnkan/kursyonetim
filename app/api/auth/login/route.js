@@ -192,7 +192,34 @@ export async function POST(request) {
 
     return response;
   } catch (error) {
-    console.error("Login API Hata:", error);
+    const errInfo = {
+      name: error?.name,
+      message: error?.message,
+      code: error?.code,
+    };
+    console.error("Login API Hata:", errInfo, error);
+    // #region agent log
+    fetch("http://127.0.0.1:7509/ingest/b658938a-a4df-4187-b293-73636f9d4d0a", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "b3fe49",
+      },
+      body: JSON.stringify({
+        sessionId: "b3fe49",
+        runId: "login-error",
+        hypothesisId: "A",
+        location: "app/api/auth/login/route.js:catch",
+        message: "Login failed with server error",
+        data: {
+          hasMongoUri: Boolean(process.env.MONGODB_URI),
+          hasJwtSecret: Boolean(process.env.JWT_SECRET),
+          ...errInfo,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
     return NextResponse.json(
       { success: false, error: "Giriş işlemi sırasında sunucu hatası oluştu." },
       { status: 500 },
