@@ -20,6 +20,7 @@ const TEHLIKELI_ISLEMLER = [
   "tum_verileri_sifirla",
   "tum_ogrenciler",
   "tum_yoklama",
+  "bugun_yoklama",
 ];
 
 export async function DELETE(request) {

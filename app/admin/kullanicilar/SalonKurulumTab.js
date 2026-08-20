@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { OZELLIK_TANIMLARI, VARSAYILAN_OZELLIKLER } from "@/lib/ozellikler";
 
 const BOS_FORM = {
   salonAdi: "",
@@ -16,6 +17,14 @@ const BOS_FORM = {
   temaRengi: "#f59e0b",
   notlar: "",
   durum: "taslak",
+  musteriEmail: "",
+  gelistiriciEmail: "",
+  kurtarmaEmail: "",
+  kurtarmaTelefon: "",
+  mailFromName: "",
+  mailFromAddress: "",
+  kurulumNotu: "",
+  ozellikler: { ...VARSAYILAN_OZELLIKLER },
 };
 
 export default function SalonKurulumTab({ bildirimGoster }) {
@@ -61,6 +70,17 @@ export default function SalonKurulumTab({ bildirimGoster }) {
       temaRengi: salon.temaRengi || "#f59e0b",
       notlar: salon.notlar || "",
       durum: salon.durum || "taslak",
+      musteriEmail: salon.musteriEmail || "",
+      gelistiriciEmail: salon.gelistiriciEmail || "",
+      kurtarmaEmail: salon.kurtarmaEmail || "",
+      kurtarmaTelefon: salon.kurtarmaTelefon || "",
+      mailFromName: salon.mailFromName || "",
+      mailFromAddress: salon.mailFromAddress || "",
+      kurulumNotu: salon.kurulumNotu || "",
+      ozellikler: {
+        ...VARSAYILAN_OZELLIKLER,
+        ...(salon.ozellikler || {}),
+      },
     });
     setLogoOnizleme(
       salon.logoBase64 || salon.logoUrl || "/logo.png",
@@ -334,6 +354,154 @@ export default function SalonKurulumTab({ bildirimGoster }) {
             />
           </div>
 
+          <div className="border-t border-slate-800 pt-4 space-y-3">
+            <h3 className="text-sm font-black text-sky-400 uppercase">
+              📧 İletişim & Kurtarma
+            </h3>
+            <p className="text-[11px] text-slate-500">
+              Teslim öncesi müşteri ve teknik iletişim bilgilerini girin. Lisans
+              uyarısı ve şifre sıfırlama bu adreslere gider.
+            </p>
+            <div>
+              <label className="text-[11px] font-black text-slate-400 uppercase">
+                Müşteri / Salon E-postası
+              </label>
+              <input
+                type="email"
+                value={form.musteriEmail}
+                onChange={(e) =>
+                  setForm({ ...form, musteriEmail: e.target.value })
+                }
+                placeholder="salon@ornek.com"
+                className="w-full mt-1 p-3 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm font-bold outline-none focus:border-sky-500"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-black text-slate-400 uppercase">
+                Geliştirici E-postanız
+              </label>
+              <input
+                type="email"
+                value={form.gelistiriciEmail}
+                onChange={(e) =>
+                  setForm({ ...form, gelistiriciEmail: e.target.value })
+                }
+                placeholder="teknik@sizin.com"
+                className="w-full mt-1 p-3 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm font-bold outline-none focus:border-sky-500"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] font-black text-slate-400 uppercase">
+                  Kurtarma E-postası
+                </label>
+                <input
+                  type="email"
+                  value={form.kurtarmaEmail}
+                  onChange={(e) =>
+                    setForm({ ...form, kurtarmaEmail: e.target.value })
+                  }
+                  className="w-full mt-1 p-3 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm font-bold outline-none focus:border-sky-500"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-black text-slate-400 uppercase">
+                  Kurtarma Telefon
+                </label>
+                <input
+                  value={form.kurtarmaTelefon}
+                  onChange={(e) =>
+                    setForm({ ...form, kurtarmaTelefon: e.target.value })
+                  }
+                  placeholder="05xx xxx xx xx"
+                  className="w-full mt-1 p-3 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm font-bold outline-none focus:border-sky-500"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] font-black text-slate-400 uppercase">
+                  E-posta Gönderen Adı
+                </label>
+                <input
+                  value={form.mailFromName}
+                  onChange={(e) =>
+                    setForm({ ...form, mailFromName: e.target.value })
+                  }
+                  className="w-full mt-1 p-3 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm font-bold outline-none focus:border-sky-500"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-black text-slate-400 uppercase">
+                  E-posta Gönderen Adres
+                </label>
+                <input
+                  type="email"
+                  value={form.mailFromAddress}
+                  onChange={(e) =>
+                    setForm({ ...form, mailFromAddress: e.target.value })
+                  }
+                  className="w-full mt-1 p-3 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm font-bold outline-none focus:border-sky-500"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-[11px] font-black text-slate-400 uppercase">
+                Kurulum / Teslim Notu
+              </label>
+              <textarea
+                rows={2}
+                value={form.kurulumNotu}
+                onChange={(e) =>
+                  setForm({ ...form, kurulumNotu: e.target.value })
+                }
+                placeholder="Anlaşma paketi, özel istekler, teslim tarihi..."
+                className="w-full mt-1 p-3 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm font-bold outline-none focus:border-sky-500"
+              />
+            </div>
+          </div>
+
+          <div className="border-t border-slate-800 pt-4 space-y-3">
+            <h3 className="text-sm font-black text-emerald-400 uppercase">
+              🧩 Sözleşmeye Göre Modüller
+            </h3>
+            <p className="text-[11px] text-slate-500">
+              Tüm modüller kodda mevcut; işaretlenmeyenler müşteri panelinde
+              gizlenir.
+            </p>
+            <div className="grid grid-cols-1 gap-2">
+              {Object.entries(OZELLIK_TANIMLARI).map(([key, tanim]) => (
+                <label
+                  key={key}
+                  className="flex items-start gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer hover:border-emerald-700"
+                >
+                  <input
+                    type="checkbox"
+                    checked={form.ozellikler[key] !== false}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        ozellikler: {
+                          ...form.ozellikler,
+                          [key]: e.target.checked,
+                        },
+                      })
+                    }
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className="block text-sm font-black text-white">
+                      {tanim.label}
+                    </span>
+                    <span className="block text-[11px] text-slate-500">
+                      {tanim.aciklama}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
           <div className="flex gap-2 pt-2">
             <button
               type="submit"
@@ -407,6 +575,11 @@ export default function SalonKurulumTab({ bildirimGoster }) {
                   {s.telefon && (
                     <p className="text-[11px] text-slate-500 mt-1">
                       📞 {s.telefon}
+                    </p>
+                  )}
+                  {s.musteriEmail && (
+                    <p className="text-[11px] text-slate-500">
+                      ✉️ {s.musteriEmail}
                     </p>
                   )}
                 </div>

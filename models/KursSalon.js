@@ -45,6 +45,17 @@ const KursSalonSchema = new mongoose.Schema(
       enum: ["aktif", "taslak", "pasif"],
       default: "taslak",
     },
+    musteriEmail: { type: String, default: "", trim: true },
+    gelistiriciEmail: { type: String, default: "", trim: true },
+    kurtarmaEmail: { type: String, default: "", trim: true },
+    kurtarmaTelefon: { type: String, default: "", trim: true },
+    mailFromName: { type: String, default: "", trim: true },
+    mailFromAddress: { type: String, default: "", trim: true },
+    kurulumNotu: { type: String, default: "" },
+    ozellikler: {
+      type: mongoose.Schema.Types.Mixed,
+      default: () => ({}),
+    },
   },
   { timestamps: true },
 );

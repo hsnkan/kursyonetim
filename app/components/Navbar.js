@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useBranding } from "@/app/components/BrandingProvider";
+import { modulErisilebilir } from "@/lib/ozellikler";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -34,6 +35,7 @@ export default function Navbar() {
     {
       name: "NFC Yoklama",
       href: "/dashboard/yoklama/nfc",
+      ozellik: "nfcYoklama",
       icon: (
         <svg
           className="w-5 h-5"
@@ -53,6 +55,7 @@ export default function Navbar() {
     {
       name: "Öğrenci Yönetimi",
       href: "/dashboard/ogrenciler",
+      ozellik: "ogrenciYonetimi",
       icon: (
         <svg
           className="w-5 h-5"
@@ -72,6 +75,7 @@ export default function Navbar() {
     {
       name: "Duyurular",
       href: "/dashboard/duyurular",
+      ozellik: "duyurular",
       icon: (
         <svg
           className="w-5 h-5 text-amber-400"
@@ -91,6 +95,7 @@ export default function Navbar() {
     {
       name: "Raporlar",
       href: "/dashboard/raporlar",
+      ozellik: "raporlar",
       icon: (
         <svg
           className="w-5 h-5"
@@ -110,6 +115,7 @@ export default function Navbar() {
     {
       name: "Aidat & Kasa Takibi",
       href: "/dashboard/muhasebe",
+      ozellik: "muhasebe",
       icon: (
         <svg
           className="w-5 h-5"
@@ -129,6 +135,7 @@ export default function Navbar() {
     {
       name: "İşlem Geçmişi",
       href: "/dashboard/audit",
+      ozellik: "auditLog",
       icon: (
         <svg
           className="w-5 h-5 text-slate-300"
@@ -189,7 +196,15 @@ export default function Navbar() {
           },
         ]
       : []),
-  ];
+  ].filter(
+    (link) =>
+      !link.ozellik ||
+      modulErisilebilir(
+        { rol: userRole },
+        branding.ozellikler,
+        link.ozellik,
+      ),
+  );
 
   const cikisYap = async () => {
     try {
