@@ -57,11 +57,12 @@ export function middleware(request) {
     return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
-  // 🛡️ 4. API KORUMASI: /api/auth, /api/cron ve /api/admin/verify-pin muaf tutuldu
+  // 🛡️ 4. API KORUMASI: /api/auth, /api/cron, /api/health muaf
   if (
     pathname.startsWith("/api") &&
     !pathname.startsWith("/api/auth") &&
     !pathname.startsWith("/api/cron") &&
+    !pathname.startsWith("/api/health") &&
     !validSession
   ) {
     return NextResponse.json(

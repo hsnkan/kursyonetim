@@ -28,11 +28,11 @@ export default function NfcYoklamaPage() {
   // 🧹 NFC KART ID TEMİZLEME
   const nfcIdTemizle = normalizeMobileCardId;
 
-  const odagiKoru = () => {
+  const odagiKoru = useCallback(() => {
     if (inputRef.current) {
       inputRef.current.focus();
     }
-  };
+  }, []);
 
   useEffect(() => {
     odagiKoru();
@@ -45,14 +45,10 @@ export default function NfcYoklamaPage() {
     return () => {
       window.removeEventListener("click", handleClickGlobal);
     };
-  }, []);
+  }, [odagiKoru]);
 
   // O GÜNÜN TÜM YOKLAMALARINI VERİTABANINDAN ÇEK
-  useEffect(() => {
-    gunlukYoklamalariGetir();
-  }, []);
-
-  const gunlukYoklamalariGetir = async () => {
+  const gunlukYoklamalariGetir = useCallback(async () => {
     setGunlukLoading(true);
     try {
       const bugunTarih = getLocalTodayDate();
@@ -70,7 +66,70 @@ export default function NfcYoklamaPage() {
     } finally {
       setGunlukLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    gunlukYoklamalariGetir();
+  }, [gunlukYoklamalariGetir]);
+
+  // 🎴 KART OKUNDUĞUNDA YOKLAMA İŞLEME FONKSİYONU (useEffect'lerden Önce Tanımlandı)
+  const yoklamaIsle = useCallback(
+    async (okunanId) => {
+      const hamKartId = okunanId || cardIdInput;
+      const kartId = nfcIdTemizle(hamKartId);
+
+      if (!kartId) return;
+
+      setLoading(true);
+      setMesaj({ tip: "", metin: "" });
+
+      try {
+        const res = await fetch("/api/yoklama/nfc", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cardId: kartId }),
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          setOgrenci(data.ogrenci);
+          if (data.zatenVar) {
+            setMesaj({
+              tip: "basari",
+              metin:
+                data.message ||
+                `⚠️ ${data.ogrenci.adSoyad} için bugün zaten yoklama alınmış!`,
+            });
+          } else {
+            setMesaj({
+              tip: "basari",
+              metin: `✅ ${data.ogrenci.adSoyad} (${data.ogrenci.grup || "Grup Belirtilmedi"}) - Yoklama Başarıyla Alındı!`,
+            });
+          }
+
+          // O günün yoklamalarını yenile
+          gunlukYoklamalariGetir();
+        } else {
+          setOgrenci(null);
+          setMesaj({
+            tip: "hata",
+            metin: `❌ ${data.error || "Kart sistemde eşleşmedi veya öğrenci bulunamadı!"}`,
+          });
+        }
+      } catch (err) {
+        setMesaj({
+          tip: "hata",
+          metin: "✕ Sunucu bağlantı hatası oluştu!",
+        });
+      } finally {
+        setLoading(false);
+        setCardIdInput("");
+        setTimeout(odagiKoru, 100);
+      }
+    },
+    [cardIdInput, gunlukYoklamalariGetir, nfcIdTemizle, odagiKoru],
+  );
 
   // URL PARAMETRESİ İLE GELEN KART ID (iPhone Kestirmeler / QR link)
   useEffect(() => {
@@ -84,63 +143,7 @@ export default function NfcYoklamaPage() {
       setCardIdInput(temizUrlCardId);
       yoklamaIsle(temizUrlCardId);
     }
-  }, [yoklamaIsle]);
-
-  // KART OKUNDUĞUNDA YOKLAMA İŞLEME FONKSİYONU
-  const yoklamaIsle = useCallback(async (okunanId) => {
-    const hamKartId = okunanId || cardIdInput;
-    const kartId = nfcIdTemizle(hamKartId);
-
-    if (!kartId) return;
-
-    setLoading(true);
-    setMesaj({ tip: "", metin: "" });
-
-    try {
-      const res = await fetch("/api/yoklama/nfc", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cardId: kartId }),
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        setOgrenci(data.ogrenci);
-        if (data.zatenVar) {
-          setMesaj({
-            tip: "basari",
-            metin:
-              data.message ||
-              `⚠️ ${data.ogrenci.adSoyad} için bugün zaten yoklama alınmış!`,
-          });
-        } else {
-          setMesaj({
-            tip: "basari",
-            metin: `✅ ${data.ogrenci.adSoyad} (${data.ogrenci.grup || "Grup Belirtilmedi"}) - Yoklama Başarıyla Alındı!`,
-          });
-        }
-
-        // O günün yoklamalarını yenile
-        gunlukYoklamalariGetir();
-      } else {
-        setOgrenci(null);
-        setMesaj({
-          tip: "hata",
-          metin: `❌ ${data.error || "Kart sistemde eşleşmedi veya öğrenci bulunamadı!"}`,
-        });
-      }
-    } catch (err) {
-      setMesaj({
-        tip: "hata",
-        metin: "✕ Sunucu bağlantı hatası oluştu!",
-      });
-    } finally {
-      setLoading(false);
-      setCardIdInput("");
-      setTimeout(odagiKoru, 100);
-    }
-  }, [cardIdInput]);
+  }, [yoklamaIsle, nfcIdTemizle]);
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
