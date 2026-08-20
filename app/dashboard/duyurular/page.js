@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useBranding } from "@/app/components/BrandingProvider";
+import PageHeader from "@/app/components/PageHeader";
+import { IconAnnounce } from "@/app/components/NavIcons";
 
 export default function DuyurularPage() {
   const branding = useBranding();
@@ -257,21 +259,12 @@ export default function DuyurularPage() {
 
   return (
     <div className="space-y-8 text-slate-900 pb-12 font-sans max-w-6xl mx-auto">
-      {/* 🌟 ANA PANEL BAŞLIĞI */}
-      <div className="bg-[#0F172A] text-white p-6 md:p-8 rounded-3xl shadow-2xl border-2 border-amber-400/40 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-black tracking-wide text-amber-400 flex items-center gap-3 uppercase">
-            <span>📢</span> Grup Duyuru Paneli
-          </h1>
-          <p className="text-xs md:text-sm font-semibold text-slate-300 mt-1">
-            Cimnastik grubunuzu seçin, mesajınızı oluşturun ve velilere özel
-            duyuru iletin.
-          </p>
-        </div>
-        <div className="bg-slate-900 border border-amber-400/50 px-4 py-2 rounded-2xl text-amber-400 text-xs font-black shadow-inner whitespace-nowrap">
-          Grup Duyuru Portalı
-        </div>
-      </div>
+      <PageHeader
+        title="Grup Duyuru Paneli"
+        subtitle="Cimnastik grubunuzu seçin, mesajınızı oluşturun ve velilere özel duyuru iletin."
+        icon={<IconAnnounce className="w-6 h-6" />}
+        badge="Grup Duyuru Portalı"
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* SOL PANEL: MESAJ İÇERİĞİ + SEÇİLİ HEDEF GRUP & VELİ LİSTESİ (7 KOLON) */}

@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import PageHeader from "@/app/components/PageHeader";
+import { IconStudents } from "@/app/components/NavIcons";
 
 export default function DondurulanOgrencilerPage() {
   const [pasifOgrenciler, setPasifOgrenciler] = useState([]);
@@ -83,26 +85,19 @@ export default function DondurulanOgrencilerPage() {
 
   return (
     <div className="space-y-6 text-slate-900">
-      {/* ÜST BAR & GERİ DÖN BUTONU */}
-      <div className="bg-[#0F172A] text-white p-6 rounded-3xl shadow-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2">
-            <span>📁</span> Dondurulan & Ayrılan Öğrenciler Arşivi
-          </h1>
-          <p className="text-xs font-bold text-amber-400 mt-0.5">
-            Dondurulmuş öğrencilerinizi görün, kayıtlarını tekrar aktifleştirin
-            veya yönetin.
-          </p>
-        </div>
-
+      <PageHeader
+        title="Dondurulan & Ayrılan Arşiv"
+        subtitle="Dondurulmuş öğrencileri görün, kayıtları tekrar aktifleştirin veya yönetin."
+        icon={<IconStudents className="w-6 h-6" />}
+      >
         <Link
           href="/dashboard/ogrenciler"
           className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-black px-4 py-2.5 rounded-2xl text-xs flex items-center gap-2 shadow-lg transition-all"
         >
           <span>←</span>
-          <span>Aktif Öğrenci Listesine Dön</span>
+          <span>Aktif Listeye Dön</span>
         </Link>
-      </div>
+      </PageHeader>
 
       {/* LİSTE KARTI VE ARAMA BAR-I */}
       <div className="bg-white p-6 rounded-3xl border-2 border-slate-200 shadow-xl space-y-4">

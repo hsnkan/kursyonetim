@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import PageHeader from "@/app/components/PageHeader";
+import { IconAudit } from "@/app/components/NavIcons";
 
 export default function AuditLogPage() {
   const [kayitlar, setKayitlar] = useState([]);
@@ -37,21 +39,19 @@ export default function AuditLogPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <div className="border-b border-slate-800 pb-5 flex flex-col sm:flex-row justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-white">📜 İşlem Geçmişi</h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Kim, neyi, ne zaman değiştirdi — sistem audit logu
-          </p>
-        </div>
+      <PageHeader
+        title="İşlem Geçmişi"
+        subtitle="Kim, neyi, ne zaman değiştirdi — sistem audit logu"
+        icon={<IconAudit className="w-6 h-6" />}
+      >
         <input
           type="text"
           placeholder="Ara: kullanıcı, işlem, detay..."
           value={filtre}
           onChange={(e) => setFiltre(e.target.value)}
-          className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm outline-none focus:border-amber-500"
+          className="px-4 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm outline-none focus:border-amber-500 min-w-[220px]"
         />
-      </div>
+      </PageHeader>
 
       {loading ? (
         <p className="text-slate-400 text-center py-12">Yükleniyor...</p>

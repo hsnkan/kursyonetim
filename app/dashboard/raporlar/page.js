@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useRef } from "react";
 import { getKursYillari } from "@/lib/kursYillari";
+import PageHeader from "@/app/components/PageHeader";
+import { IconReports } from "@/app/components/NavIcons";
 
 export default function RaporlarPage() {
   const [ogrenciOzet, setOgrenciOzet] = useState(null);
@@ -309,18 +311,11 @@ export default function RaporlarPage() {
 
   return (
     <div className="space-y-8 pb-12 font-sans text-slate-900">
-      {/* 🌟 BAŞLIK */}
-      <div className="bg-[#0F172A] text-white p-6 md:p-8 rounded-3xl shadow-2xl border-2 border-amber-400/40 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-black tracking-wide text-amber-400 flex items-center gap-3 uppercase">
-            <span>📊</span> Raporlama & Katılım Analizleri
-          </h1>
-          <p className="text-xs md:text-sm font-semibold text-slate-300 mt-1">
-            Ay ve yıl bazlı katılan, dondurulan ve ayrılan sporcu istatistikleri
-            ile görevli imzalı yoklama PDF raporları.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Raporlama & Katılım Analizleri"
+        subtitle="Ay ve yıl bazlı istatistikler ile görevli imzalı yoklama PDF raporları."
+        icon={<IconReports className="w-6 h-6" />}
+      />
 
       {/* 📊 ÜST İSTATİSTİK BALONCUKLARI */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">

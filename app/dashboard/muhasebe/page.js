@@ -1,5 +1,8 @@
 "use client";
 
+import PageHeader from "@/app/components/PageHeader";
+import { IconFinance } from "@/app/components/NavIcons";
+
 import { useEffect, useState } from "react";
 import { useBranding } from "@/app/components/BrandingProvider";
 import { getKursYillari } from "@/lib/kursYillari";
@@ -281,21 +284,12 @@ export default function MuhasebePage() {
 
   return (
     <div className="space-y-8 text-slate-900 pb-12 font-sans">
-      {/* 💼 SAYFA BAŞLIĞI */}
-      <div className="bg-[#0F172A] text-white p-6 md:p-8 rounded-3xl shadow-2xl border-2 border-amber-400/40 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-black tracking-wide text-amber-400 flex items-center gap-3 uppercase">
-            <span>💼</span> Mali Yönetim & Aidat Takip Portalı
-          </h1>
-          <p className="text-xs md:text-sm font-semibold text-slate-300 mt-1">
-            İş yeri sahibi mali genel bakış, aidat tahsilatları ve WhatsApp
-            hatırlatma kontrol paneli.
-          </p>
-        </div>
-        <div className="bg-amber-400 text-slate-950 px-4 py-2 rounded-2xl text-xs font-black shadow-lg uppercase tracking-wider">
-          İş Yeri Yönetim Paneli
-        </div>
-      </div>
+      <PageHeader
+        title="Mali Yönetim & Aidat Takip"
+        subtitle="İş yeri sahibi mali genel bakış, aidat tahsilatları ve WhatsApp hatırlatma kontrol paneli."
+        icon={<IconFinance className="w-6 h-6" />}
+        badge="İş Yeri Yönetim Paneli"
+      />
 
       {loading ? (
         <div className="p-12 text-center font-bold text-slate-400">

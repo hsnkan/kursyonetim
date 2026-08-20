@@ -1,5 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
+import PageHeader from "@/app/components/PageHeader";
+import { IconProfile } from "@/app/components/NavIcons";
+import GymnastSuccessAnimation from "@/app/components/GymnastSuccessAnimation";
 
 export default function ProfilPage() {
   const [loading, setLoading] = useState(false);
@@ -17,6 +20,7 @@ export default function ProfilPage() {
   const [secretKey, setSecretKey] = useState("");
   const [verifyCode, setVerifyCode] = useState("");
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+  const [successAnim, setSuccessAnim] = useState(false);
 
   // 💳 Sayfa Yüklendiğinde Lisans Bilgisini Getir
   useEffect(() => {
@@ -92,6 +96,8 @@ export default function ProfilPage() {
         setIs2FAEnabled(true);
         setQrCode("");
         setMessage("🎉 Google Authenticator başarıyla aktifleştirildi!");
+        setSuccessAnim(true);
+        setTimeout(() => setSuccessAnim(false), 1800);
       } else {
         setMessage("❌ " + data.error);
       }
@@ -103,16 +109,14 @@ export default function ProfilPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-8">
-      <div className="border-b border-slate-800 pb-4">
-        <h1 className="text-2xl font-black text-white">
-          Hesap, Lisans ve Güvenlik Ayarları
-        </h1>
-        <p className="text-slate-400 text-sm">
-          Aşağıdan lisans sürenizi, teknik destek izinlerinizi ve Google
-          Authenticator güvenliğinizi yönetebilirsiniz.
-        </p>
-      </div>
+    <div className="max-w-4xl mx-auto p-6 space-y-8 relative overflow-hidden">
+      <GymnastSuccessAnimation active={successAnim} />
+
+      <PageHeader
+        title="Hesap, Lisans ve Güvenlik"
+        subtitle="Lisans sürenizi, teknik destek izinlerinizi ve Google Authenticator güvenliğinizi yönetin."
+        icon={<IconProfile className="w-6 h-6" />}
+      />
 
       {message && (
         <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-sm font-medium">

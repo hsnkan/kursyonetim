@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import StatCard from "@/app/components/StatCard";
+import PageHeader from "@/app/components/PageHeader";
+import { IconReports } from "@/app/components/NavIcons";
 
 export default function RaporlarPage() {
   const [ogrenciOzet, setOgrenciOzet] = useState(null);
@@ -115,15 +117,11 @@ export default function RaporlarPage() {
 
   return (
     <div className="space-y-8">
-      {/* 🌟 KONTRASTI DÜZELTİLMİŞ BEMBEYAZ YÜKSEK OKUNABİLİR BAŞLIK */}
-      <div className="border-b border-slate-800 pb-5">
-        <h1 className="text-3xl font-black text-white tracking-wide flex items-center gap-3">
-          📊 Genel Özet & Raporlar
-        </h1>
-        <p className="text-sm font-bold text-slate-300 mt-1">
-          Balans Cimnastik Akademi canlı performans ve mali istatistikleri
-        </p>
-      </div>
+      <PageHeader
+        title="Genel Özet & Raporlar"
+        subtitle="Canlı performans ve mali istatistiklerin tek ekran özeti"
+        icon={<IconReports className="w-6 h-6" />}
+      />
 
       {/* İSTATİSTİK KARTLARI */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">

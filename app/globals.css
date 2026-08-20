@@ -24,3 +24,43 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@keyframes gymnast-parende {
+  0% {
+    transform: translateY(0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  35% {
+    transform: translateY(28vh) rotate(360deg) scale(1.15);
+  }
+  100% {
+    transform: translateY(calc(100vh - 88px)) rotate(720deg) scale(0.95);
+    opacity: 0.9;
+  }
+}
+
+.gymnast-runner {
+  animation: gymnast-parende 1.7s cubic-bezier(0.42, 0, 0.58, 1) forwards;
+  filter: drop-shadow(0 8px 16px rgba(245, 158, 11, 0.35));
+}
+
+.gymnast-boy {
+  animation-delay: 0.12s;
+}
+
+@keyframes animate-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+.animate-shake {
+  animation: animate-shake 0.35s ease-in-out;
+}

@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import PageHeader from "@/app/components/PageHeader";
+import { IconStudents } from "@/app/components/NavIcons";
 
 export default function OgrenciYonetimPage() {
   const DEFAULT_WHATSAPP_LINK = "https://chat.whatsapp.com/GrupDavetKodunuz";
@@ -1862,26 +1864,18 @@ export default function OgrenciYonetimPage() {
   // 🟢 ÖĞRENCİ LİSTESİ VE EKSİKSİZ YENİ KAYIT EKRANI
   return (
     <div className="space-y-8 text-slate-900 font-sans">
-      <div className="bg-white p-6 rounded-3xl border-2 border-slate-200 shadow-xl text-slate-900 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-black tracking-wide">
-            Öğrenci Yönetimi & Kayıt Paneli
-          </h1>
-          <p className="text-xs font-bold text-slate-500 mt-0.5">
-            Öğrenci Kaydı, İnceleme ve Kayıt Yönetimi
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <Link
-            href="/dashboard/ogrenciler/arsiv"
-            className="bg-slate-800 hover:bg-slate-900 text-amber-400 border border-slate-700 font-black px-4 py-2.5 rounded-2xl text-xs flex items-center gap-2 shadow-lg transition-all"
-          >
-            <span>📁</span>
-            <span>Dondurulanlar & Arşiv</span>
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title="Öğrenci Yönetimi & Kayıt"
+        subtitle="Öğrenci kaydı, inceleme ve kayıt yönetimi"
+        icon={<IconStudents className="w-6 h-6" />}
+      >
+        <Link
+          href="/dashboard/ogrenciler/arsiv"
+          className="bg-slate-800 hover:bg-slate-900 text-amber-400 border border-slate-700 font-black px-4 py-2.5 rounded-2xl text-xs flex items-center gap-2 shadow-lg transition-all"
+        >
+          Dondurulanlar & Arşiv
+        </Link>
+      </PageHeader>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* SOL: EKSİKSİZ KAYIT FORMU */}

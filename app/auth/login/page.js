@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CLIENT_SITE } from "@/lib/siteConfig.client";
+import GymnastSuccessAnimation from "@/app/components/GymnastSuccessAnimation";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function LoginPage() {
   const [tempToken, setTempToken] = useState("");
   const [hata, setHata] = useState("");
   const [yukleniyor, setYukleniyor] = useState(false);
+  const [successAnim, setSuccessAnim] = useState(false);
 
   // 🛡️ Cihaz İmzası Oluşturucu (30 Günlük Tanıma İçin)
   const getDeviceId = () => {
@@ -97,9 +99,13 @@ export default function LoginPage() {
         return;
       }
 
-      // ✅ 2FA Sonrası Rol Bazlı Yönlendirme
+      // ✅ 2FA Sonrası Rol Bazlı Yönlendirme + parende animasyonu
       const targetPath = data.redirectTo || "/dashboard/yoklama/nfc";
-      window.location.href = targetPath;
+      setSuccessAnim(true);
+      setYukleniyor(false);
+      setTimeout(() => {
+        window.location.href = targetPath;
+      }, 1700);
     } catch (err) {
       setHata("Doğrulama sırasında bir hata oluştu.");
       setYukleniyor(false);
@@ -107,7 +113,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 font-sans">
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 font-sans relative overflow-hidden">
+      <GymnastSuccessAnimation active={successAnim} />
       <div className="bg-white max-w-md w-full p-8 md:p-10 rounded-3xl shadow-2xl border border-slate-800 text-center">
         {/* RESMİ BALANS CİMNASTİK LOGOSU */}
         <div className="flex flex-col items-center mb-6">
