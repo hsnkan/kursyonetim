@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { getKursYillari } from "@/lib/kursYillari";
 
 export default function RaporlarPage() {
   const [ogrenciOzet, setOgrenciOzet] = useState(null);
@@ -43,7 +44,7 @@ export default function RaporlarPage() {
     { deger: 12, ad: "Aralık" },
   ];
 
-  const YILLAR = [2024, 2025, 2026, 2027];
+  const YILLAR = getKursYillari();
 
   useEffect(() => {
     verileriGetir();

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import NfcKartYoklamaPanel from "@/app/components/NfcKartYoklamaPanel";
 import { normalizeMobileCardId } from "@/lib/mobileYoklama";
 
 // 📅 YEREL (TR) TARİH YARDIMCISI (UTC Kaymasını Önler)
@@ -15,9 +14,7 @@ const getLocalTodayDate = () => {
 
 export default function NfcYoklamaPage() {
   const [cardIdInput, setCardIdInput] = useState("");
-  const [ogrenci, setOgrenci] = useState(null);
   const [mesaj, setMesaj] = useState({ tip: "", metin: "" });
-  const [loading, setLoading] = useState(false);
   const [yoklamaGecmisi, setYoklamaGecmisi] = useState([]);
   const [gunlukLoading, setGunlukLoading] = useState(false);
 
@@ -80,7 +77,6 @@ export default function NfcYoklamaPage() {
 
       if (!kartId) return;
 
-      setLoading(true);
       setMesaj({ tip: "", metin: "" });
 
       try {
@@ -93,7 +89,6 @@ export default function NfcYoklamaPage() {
         const data = await res.json();
 
         if (data.success) {
-          setOgrenci(data.ogrenci);
           if (data.zatenVar) {
             setMesaj({
               tip: "basari",
@@ -111,7 +106,6 @@ export default function NfcYoklamaPage() {
           // O günün yoklamalarını yenile
           gunlukYoklamalariGetir();
         } else {
-          setOgrenci(null);
           setMesaj({
             tip: "hata",
             metin: `❌ ${data.error || "Kart sistemde eşleşmedi veya öğrenci bulunamadı!"}`,
@@ -123,7 +117,6 @@ export default function NfcYoklamaPage() {
           metin: "✕ Sunucu bağlantı hatası oluştu!",
         });
       } finally {
-        setLoading(false);
         setCardIdInput("");
         setTimeout(odagiKoru, 100);
       }
@@ -163,69 +156,22 @@ export default function NfcYoklamaPage() {
   }, {});
 
   return (
-    <div className="space-y-8 text-slate-900 pb-12 font-sans max-w-4xl mx-auto">
-      {/* BAŞLIK VE CANLI DURUM PANOLARI */}
-      <div className="bg-[#0F172A] text-white p-6 md:p-8 rounded-3xl shadow-2xl border-2 border-amber-400/40 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-black tracking-wide text-amber-400 flex items-center gap-3 uppercase">
-            <span>🎴</span> Temassız NFC / Kartlı Yoklama
-          </h1>
-          <p className="text-xs md:text-sm font-semibold text-slate-300 mt-1">
-            13,56 MHz NFC kart + USB okuyucu ile yoklama alın. Kart okutulunca
-            işlem anında kaydedilir.
-          </p>
-        </div>
-        <div className="bg-emerald-500 text-slate-950 px-4 py-2 rounded-2xl text-xs font-black shadow-lg flex items-center gap-2 animate-pulse whitespace-nowrap">
-          <span className="w-2.5 h-2.5 rounded-full bg-slate-950"></span>
-          SİSTEM OKUMAYA HAZIR
-        </div>
-      </div>
+    <div className="space-y-6 text-slate-900 pb-12 font-sans max-w-4xl mx-auto">
+      <div className="bg-white p-6 rounded-3xl border-2 border-slate-300 shadow-xl">
+        <input
+          ref={inputRef}
+          type="text"
+          value={cardIdInput}
+          onChange={(e) => setCardIdInput(nfcIdTemizle(e.target.value))}
+          onKeyDown={handleKeyDown}
+          placeholder="Kartı okutun..."
+          autoFocus
+          className="w-full text-center border-4 border-amber-400 focus:border-emerald-500 p-4 rounded-2xl text-xl font-black text-slate-900 bg-amber-50/30 focus:bg-emerald-50/30 outline-none shadow-inner transition-all"
+        />
 
-      {/* MOBİL YOKLAMA (iPhone / Android) */}
-      <NfcKartYoklamaPanel onKartOkundu={yoklamaIsle} yukleniyor={loading} />
-
-      {/* OPERASYONEL GEREKSİNİM BİLGİLENDİRME ROZETİ */}
-      <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 font-bold text-xs flex items-center gap-3 shadow-sm">
-        <span className="text-xl">💡</span>
-        <span>
-          <strong>Salon standardı:</strong> Bilgisayar + USB NFC okuyucu (13,56
-          MHz). Sayfa açık kalmalı; imleç kart giriş alanındayken okuyucuya kart
-          dokundurun. Android telefonda yedek NFC okuma mümkündür; iPhone
-          tarayıcısı NFC kart okumaz. Gün sonu için <strong>Raporlar</strong>.
-        </span>
-      </div>
-
-      {/* OTOMATİK ODAKLANAN HIZLI OKUMA ALANI */}
-      <div className="bg-white p-8 rounded-3xl border-2 border-slate-300 shadow-xl text-center space-y-6">
-        <div className="inline-flex p-4 rounded-full bg-amber-100 text-amber-900 border-2 border-amber-400 text-3xl">
-          📡
-        </div>
-
-        <div className="max-w-md mx-auto space-y-3">
-          <label className="block text-xs font-black text-slate-500 uppercase">
-            USB Okuyucu / Kart ID Girişi (13,56 MHz NFC)
-          </label>
-
-          <input
-            ref={inputRef}
-            type="text"
-            value={cardIdInput}
-            onChange={(e) => setCardIdInput(nfcIdTemizle(e.target.value))}
-            onKeyDown={handleKeyDown}
-            placeholder="Kartı okutun..."
-            autoFocus
-            className="w-full text-center border-4 border-amber-400 focus:border-emerald-500 p-4 rounded-2xl text-xl font-black text-slate-900 bg-amber-50/30 focus:bg-emerald-50/30 outline-none shadow-inner transition-all"
-          />
-
-          <p className="text-[11px] font-bold text-slate-400">
-            * USB okuyucu kartı okutunca numara buraya yazılır ve yoklama düşer.
-          </p>
-        </div>
-
-        {/* BİLDİRİM VE DURUM MESAJLARI */}
         {mesaj.metin && (
           <div
-            className={`p-4 rounded-2xl font-black text-sm border-2 shadow-md transition-all ${
+            className={`mt-4 p-4 rounded-2xl font-black text-sm border-2 shadow-md transition-all ${
               mesaj.tip === "basari"
                 ? "bg-emerald-100 text-emerald-950 border-emerald-400"
                 : "bg-rose-100 text-rose-950 border-rose-400"
@@ -236,26 +182,7 @@ export default function NfcYoklamaPage() {
         )}
       </div>
 
-      {/* SON OKUNAN SPORCU DETAY KARTI */}
-      {ogrenci && (
-        <div className="bg-emerald-600 text-white p-6 rounded-3xl shadow-xl flex items-center justify-between border-2 border-emerald-400">
-          <div className="space-y-1">
-            <span className="text-[10px] font-black uppercase text-emerald-200">
-              Son Derse Katılan Sporcu
-            </span>
-            <h2 className="text-2xl font-black">{ogrenci.adSoyad}</h2>
-            <p className="text-xs font-bold text-emerald-100">
-              Cimnastik Grubu:{" "}
-              <strong>{ogrenci.grup || "Grup Belirtilmedi"}</strong>
-            </p>
-          </div>
-          <span className="text-4xl bg-emerald-700 p-3 rounded-2xl border border-emerald-400">
-            🤸‍♀️
-          </span>
-        </div>
-      )}
-
-      {/* 📋 BUGÜN GİRİŞ YAPAN SPORCULARIN GRUP BAŞLIKLI LİSTESİ */}
+      {/* BUGÜN GİRİŞ YAPAN SPORCULAR — GRUP BAŞLIKLı */}
       <div className="bg-white rounded-3xl border-2 border-slate-300 shadow-xl overflow-hidden space-y-1 p-2">
         <div className="p-4 bg-slate-900 text-white flex justify-between items-center rounded-2xl mb-2">
           <div>

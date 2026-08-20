@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useBranding } from "@/app/components/BrandingProvider";
+import { getKursYillari } from "@/lib/kursYillari";
 
 export default function MuhasebePage() {
   const branding = useBranding();
@@ -64,13 +65,7 @@ export default function MuhasebePage() {
     "Ara",
   ];
 
-  const yillar = [
-    simdikiYil - 3,
-    simdikiYil - 2,
-    simdikiYil - 1,
-    simdikiYil,
-    simdikiYil + 1,
-  ];
+  const yillar = getKursYillari();
 
   const odemeleriGetir = async () => {
     try {
