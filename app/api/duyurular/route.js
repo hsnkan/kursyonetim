@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import mongoose from "mongoose";
-import { requireAuth } from "@/lib/auth";
+import { requireModule } from "@/lib/moduleGuard";
 
 const DuyuruSchema = new mongoose.Schema(
   {
@@ -21,7 +21,7 @@ const Duyuru = mongoose.models.Duyuru || mongoose.model("Duyuru", DuyuruSchema);
 
 export async function GET(request) {
   try {
-    const auth = requireAuth(request);
+    const auth = await requireModule(request, "duyurular");
     if (auth.error) return auth.error;
 
     await dbConnect();
@@ -37,7 +37,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const auth = requireAuth(request);
+    const auth = await requireModule(request, "duyurular");
     if (auth.error) return auth.error;
 
     await dbConnect();
@@ -71,7 +71,7 @@ export async function POST(request) {
 
 export async function DELETE(request) {
   try {
-    const auth = requireAuth(request);
+    const auth = await requireModule(request, "duyurular");
     if (auth.error) return auth.error;
 
     await dbConnect();

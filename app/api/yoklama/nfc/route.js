@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Ogrenci from "@/models/Ogrenci";
 import Yoklama from "@/models/Yoklama";
-import { requireAuth } from "@/lib/auth";
+import { requireModule } from "@/lib/moduleGuard";
 import { findOgrenciByNfc } from "@/lib/nfc";
 import { logOgrenciIslem } from "@/lib/audit";
 
 export async function POST(request) {
   try {
-    const auth = requireAuth(request);
+    const auth = await requireModule(request, "nfcYoklama");
     if (auth.error) return auth.error;
 
     await dbConnect();

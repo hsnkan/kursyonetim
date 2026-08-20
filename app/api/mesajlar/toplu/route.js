@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Ogrenci from "@/models/Ogrenci";
 import MesajKampanya from "@/models/MesajKampanya";
-import { requireAuth } from "@/lib/auth";
+import { requireModule } from "@/lib/moduleGuard";
 import { logAudit } from "@/lib/audit";
 import {
   buildVeliMesaji,
@@ -12,7 +12,7 @@ import {
 
 export async function GET(request) {
   try {
-    const auth = requireAuth(request);
+    const auth = await requireModule(request, "duyurular");
     if (auth.error) return auth.error;
 
     await dbConnect();
@@ -35,7 +35,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const auth = requireAuth(request);
+    const auth = await requireModule(request, "duyurular");
     if (auth.error) return auth.error;
 
     await dbConnect();

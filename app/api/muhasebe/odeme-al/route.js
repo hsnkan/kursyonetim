@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Odeme from "@/models/Odeme";
 import Ogrenci from "@/models/Ogrenci";
-import { requireAuth } from "@/lib/auth";
+import { requireModule } from "@/lib/moduleGuard";
 import { logOgrenciIslem } from "@/lib/audit";
 
 export async function POST(request) {
   try {
-    const auth = requireAuth(request);
+    const auth = await requireModule(request, "muhasebe");
     if (auth.error) return auth.error;
 
     await dbConnect();

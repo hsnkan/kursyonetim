@@ -48,6 +48,10 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: false, // 30 gün kala geliştiriciye uyarı maili atıldı mı?
     },
+    licenseCustomerReminderSent: {
+      type: Boolean,
+      default: false, // 30 gün kala müşteriye hatırlatma maili atıldı mı?
+    },
 
     // 🔐 1. KATMAN: 2FA (Google Authenticator / TOTP)
     twoFactorEnabled: {

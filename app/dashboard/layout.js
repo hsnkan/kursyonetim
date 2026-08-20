@@ -1,5 +1,6 @@
 import Navbar from "@/app/components/Navbar";
 import BrandingProvider from "@/app/components/BrandingProvider";
+import ModulePageGuard from "@/app/components/ModulePageGuard";
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import { getSupportSessionBannerText } from "@/lib/siteConfig";
@@ -9,11 +10,13 @@ export default async function DashboardLayout({ children }) {
   const cookieStore = await cookies();
   const token = cookieStore.get("session_token")?.value;
   let isSupportSession = false;
+  let userRole = null;
 
   if (token) {
     try {
       const decoded = jwt.decode(token);
       isSupportSession = decoded?.isSupportSession || false;
+      userRole = decoded?.rol || null;
     } catch (err) {
       // Token decode hatasında sessizce geç
     }
@@ -21,6 +24,7 @@ export default async function DashboardLayout({ children }) {
 
   return (
     <BrandingProvider>
+      <ModulePageGuard userRole={userRole} />
       <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans relative overflow-x-hidden">
       {/* 👁️ MÜŞTERİ MAHREMİYETİ & DESTEK İZNİ UYARI BANDI */}
       {isSupportSession && (

@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import AuditLog from "@/models/AuditLog";
-import { requireAuth } from "@/lib/auth";
+import { requireModule } from "@/lib/moduleGuard";
 
 export async function GET(request) {
   try {
-    const auth = requireAuth(request);
+    const auth = await requireModule(request, "auditLog");
     if (auth.error) return auth.error;
 
     await dbConnect();

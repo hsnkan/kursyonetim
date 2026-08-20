@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useBranding } from "@/app/components/BrandingProvider";
-import { modulErisilebilir } from "@/lib/ozellikler";
+import { modulErisilebilir, varsayilanDashboardYolu } from "@/lib/ozellikler";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -216,12 +216,17 @@ export default function Navbar() {
     }
   };
 
+  const anaSayfaYolu =
+    userRole === "developer"
+      ? "/admin/kullanicilar"
+      : varsayilanDashboardYolu(branding.ozellikler);
+
   return (
     <aside className="w-full md:w-64 bg-[#0F172A] border-r border-slate-800 text-white flex flex-col justify-between shrink-0 min-h-screen sticky top-0 z-40 shadow-2xl">
       <div>
         {/* LOGO & MARKA */}
         <Link
-          href="/dashboard/yoklama/nfc"
+          href={anaSayfaYolu}
           className="p-6 border-b border-slate-800 flex items-center space-x-3 group block"
         >
           <div className="relative w-11 h-11 rounded-full overflow-hidden border-2 border-amber-400 shadow-md group-hover:scale-105 transition-transform">

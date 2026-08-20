@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Ogrenci from "@/models/Ogrenci";
 import Yoklama from "@/models/Yoklama";
-import { requireAuth } from "@/lib/auth";
+import { requireModule } from "@/lib/moduleGuard";
 
 export async function GET(request) {
   try {
-    const auth = requireAuth(request);
+    const auth = await requireModule(request, "raporlar");
     if (auth.error) return auth.error;
 
     await dbConnect();

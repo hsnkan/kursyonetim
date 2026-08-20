@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CLIENT_SITE } from "@/lib/siteConfig.client";
 
@@ -237,12 +238,18 @@ export default function LoginPage() {
       </div>
 
       {/* 🔒 KVKK VE BİLGİ GÜVENLİĞİ BİLDİRİMİ */}
-      <div className="mt-6 text-center max-w-md">
+      <div className="mt-6 text-center max-w-md space-y-2">
         <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
           🔒 Bu sistem 6698 sayılı KVKK standartlarına uygun olarak uçtan uca
           şifrelenmektedir. Oturum verileriniz güvenli HTTP-Only çerez protokolü
           ile korunmaktadır.
         </p>
+        <Link
+          href="/gizlilik"
+          className="text-[11px] font-bold text-amber-600 hover:text-amber-500 underline"
+        >
+          KVKK Aydınlatma Metnini Oku
+        </Link>
       </div>
     </div>
   );

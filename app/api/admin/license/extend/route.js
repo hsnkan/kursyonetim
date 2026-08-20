@@ -48,6 +48,7 @@ export async function POST(request) {
 
     user.licenseEndDate = sonuc.yeniBitis;
     user.licenseWarningSent = false;
+    user.licenseCustomerReminderSent = false;
     await user.save();
 
     const islemMetni =

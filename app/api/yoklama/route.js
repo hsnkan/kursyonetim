@@ -3,14 +3,14 @@ import dbConnect from "@/lib/db";
 import Ogrenci from "@/models/Ogrenci";
 import Yoklama from "@/models/Yoklama";
 import mongoose from "mongoose";
-import { requireAuth } from "@/lib/auth";
+import { requireModule } from "@/lib/moduleGuard";
 
 // ==========================================================
 // 1. YOKLAMA GEÇMİŞİ / GÜNLÜK - ANLIK LİSTE VE SAYIM GETİR (GET)
 // ==========================================================
 export async function GET(request) {
   try {
-    const auth = requireAuth(request);
+    const auth = await requireModule(request, "nfcYoklama");
     if (auth.error) return auth.error;
 
     await dbConnect();

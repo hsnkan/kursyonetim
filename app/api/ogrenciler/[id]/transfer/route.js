@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Ogrenci from "@/models/Ogrenci";
-import { requireAuth } from "@/lib/auth";
+import { requireModule } from "@/lib/moduleGuard";
 import { logOgrenciIslem } from "@/lib/audit";
 
 export async function PATCH(request, context) {
   try {
-    const auth = requireAuth(request);
+    const auth = await requireModule(request, "ogrenciYonetimi");
     if (auth.error) return auth.error;
 
     await dbConnect();

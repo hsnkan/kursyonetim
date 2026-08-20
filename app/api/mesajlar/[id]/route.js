@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import MesajKampanya from "@/models/MesajKampanya";
-import { requireAuth } from "@/lib/auth";
+import { requireModule } from "@/lib/moduleGuard";
 import { logAudit } from "@/lib/audit";
 
 export async function GET(request, context) {
   try {
-    const auth = requireAuth(request);
+    const auth = await requireModule(request, "duyurular");
     if (auth.error) return auth.error;
 
     await dbConnect();
@@ -33,7 +33,7 @@ export async function GET(request, context) {
 
 export async function PATCH(request, context) {
   try {
-    const auth = requireAuth(request);
+    const auth = await requireModule(request, "duyurular");
     if (auth.error) return auth.error;
 
     await dbConnect();

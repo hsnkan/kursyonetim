@@ -250,6 +250,21 @@ export default function ProfilPage() {
           </div>
         )}
       </div>
+
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+        <h2 className="text-lg font-bold text-white">📄 KVKK Bilgilendirme</h2>
+        <p className="text-slate-400 text-xs mt-2 leading-relaxed">
+          Kişisel verilerinizin işlenmesi hakkında aydınlatma metnini okuyabilirsiniz.
+        </p>
+        <a
+          href="/gizlilik"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block mt-3 text-xs font-bold text-sky-400 hover:text-sky-300 underline"
+        >
+          KVKK Aydınlatma Metni →
+        </a>
+      </div>
     </div>
   );
 }

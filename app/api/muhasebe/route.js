@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Odeme from "@/models/Odeme";
 import Ogrenci from "@/models/Ogrenci";
-import { requireAuth } from "@/lib/auth";
+import { requireModule } from "@/lib/moduleGuard";
 
 // Telefon numarasını öğrenci nesnesinin tüm olası alanlarından bulan yardımcı fonksiyon
 const telefonBul = (ogrenci) => {
@@ -37,7 +37,7 @@ const veliAdBul = (ogrenci) => {
 export async function GET(request) {
   try {
     // 🔒 Oturum Kontrolü
-    const auth = requireAuth(request);
+    const auth = await requireModule(request, "muhasebe");
     if (auth.error) return auth.error;
 
     await dbConnect();
@@ -207,7 +207,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     // 🔒 Oturum Kontrolü
-    const auth = requireAuth(request);
+    const auth = await requireModule(request, "muhasebe");
     if (auth.error) return auth.error;
 
     await dbConnect();

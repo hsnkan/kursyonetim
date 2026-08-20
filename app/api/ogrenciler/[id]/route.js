@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Ogrenci from "@/models/Ogrenci";
-import { requireAuth } from "@/lib/auth";
+import { requireModule } from "@/lib/moduleGuard";
 import { logOgrenciIslem, buildDiffDetay } from "@/lib/audit";
 import { normalizeNfcId } from "@/lib/nfc";
 
@@ -77,7 +77,7 @@ function guvenliGuncellemeSüz(body) {
 
 export async function DELETE(request, context) {
   try {
-    const auth = requireAuth(request);
+    const auth = await requireModule(request, "ogrenciYonetimi");
     if (auth.error) return auth.error;
 
     await dbConnect();
@@ -112,7 +112,7 @@ export async function DELETE(request, context) {
 
 export async function PUT(request, context) {
   try {
-    const auth = requireAuth(request);
+    const auth = await requireModule(request, "ogrenciYonetimi");
     if (auth.error) return auth.error;
 
     await dbConnect();
@@ -161,7 +161,7 @@ export async function PUT(request, context) {
 
 export async function PATCH(request, context) {
   try {
-    const auth = requireAuth(request);
+    const auth = await requireModule(request, "ogrenciYonetimi");
     if (auth.error) return auth.error;
 
     await dbConnect();

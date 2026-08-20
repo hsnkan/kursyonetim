@@ -4,6 +4,7 @@ import User from "@/models/User";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { getBrandingBySalonId } from "@/lib/branding";
+import { varsayilanDashboardYolu } from "@/lib/ozellikler";
 
 export async function POST(request) {
   try {
@@ -169,7 +170,9 @@ export async function POST(request) {
     const targetRedirect =
       userRole === "developer"
         ? "/admin/kullanicilar"
-        : "/dashboard/yoklama/nfc";
+        : branding
+          ? varsayilanDashboardYolu(branding.ozellikler)
+          : "/dashboard/profil";
 
     const response = NextResponse.json({
       success: true,
