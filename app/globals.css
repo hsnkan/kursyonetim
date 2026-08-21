@@ -77,23 +77,23 @@ body {
     opacity: 1;
   }
   18% {
-    transform: translateX(12vw) translateY(-5vh) rotate(-252deg);
+    transform: translateX(12vw) translateY(-5vh) rotate(252deg);
   }
   36% {
-    transform: translateX(32vw) translateY(0) rotate(-504deg);
+    transform: translateX(32vw) translateY(0) rotate(504deg);
   }
   54% {
-    transform: translateX(52vw) translateY(-4vh) rotate(-756deg);
+    transform: translateX(52vw) translateY(-4vh) rotate(756deg);
   }
   72% {
-    transform: translateX(72vw) translateY(0) rotate(-1008deg);
+    transform: translateX(72vw) translateY(0) rotate(1008deg);
   }
   90% {
-    transform: translateX(92vw) translateY(-2vh) rotate(-1260deg);
+    transform: translateX(92vw) translateY(-2vh) rotate(1260deg);
   }
   100% {
     transform: translateX(calc(100vw + var(--gym-size))) translateY(0)
-      rotate(-1440deg);
+      rotate(1440deg);
     opacity: 0.88;
   }
 }

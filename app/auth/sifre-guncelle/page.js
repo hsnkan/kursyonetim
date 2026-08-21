@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import PasswordInput from "@/app/components/PasswordInput";
 
 export default function SifreGuncellePage() {
   const [email, setEmail] = useState("");
@@ -97,14 +98,13 @@ export default function SifreGuncellePage() {
             <label className="block text-[11px] font-black uppercase text-slate-400 mb-1">
               Yeni Şifre
             </label>
-            <input
-              type="password"
+            <PasswordInput
               required
               minLength={6}
               value={yeniSifre}
               onChange={(e) => setYeniSifre(e.target.value)}
               placeholder="En az 6 karakter..."
-              className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 font-mono"
+              inputClassName="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 font-mono"
             />
           </div>
 
@@ -112,14 +112,13 @@ export default function SifreGuncellePage() {
             <label className="block text-[11px] font-black uppercase text-slate-400 mb-1">
               Yeni Şifre (Tekrar)
             </label>
-            <input
-              type="password"
+            <PasswordInput
               required
               minLength={6}
               value={yeniSifreTekrar}
               onChange={(e) => setYeniSifreTekrar(e.target.value)}
               placeholder="Yeni şifrenizi tekrar girin..."
-              className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 font-mono"
+              inputClassName="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 font-mono"
             />
           </div>
 

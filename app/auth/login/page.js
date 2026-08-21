@@ -7,6 +7,7 @@ import { CLIENT_SITE } from "@/lib/siteConfig.client";
 import GymnastSuccessAnimation, {
   GYMNAST_ANIM_MS,
 } from "@/app/components/GymnastSuccessAnimation";
+import PasswordInput from "@/app/components/PasswordInput";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -170,13 +171,12 @@ export default function LoginPage() {
               <label className="block text-xs font-black text-slate-700 uppercase mb-1">
                 Şifre
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900"
+                inputClassName="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900"
               />
             </div>
 

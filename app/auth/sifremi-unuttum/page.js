@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import PasswordInput from "@/app/components/PasswordInput";
 
 export default function SifremiUnuttumPage() {
   const router = useRouter();
@@ -235,14 +236,13 @@ export default function SifremiUnuttumPage() {
               <label className="text-xs font-bold text-slate-300 block mb-1">
                 Yeni Şifreniz
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 required
                 minLength={6}
                 value={yeniSifre}
                 onChange={(e) => setYeniSifre(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400"
                 placeholder="En az 6 karakter"
+                inputClassName="w-full bg-slate-800 border border-slate-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400"
               />
             </div>
 
