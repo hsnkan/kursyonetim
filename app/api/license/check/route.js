@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import User from "@/models/User";
 import { requireAuth } from "@/lib/auth";
+import {
+  calculateRemainingLicenseDays,
+  isLicenseWarningPeriod,
+} from "@/lib/license";
 
 export async function GET(request) {
   try {
@@ -16,6 +20,7 @@ export async function GET(request) {
         kalanGun: null,
         bitisTarihi: null,
         sinirsiz: true,
+        uyariGerekli: false,
       });
     }
 
@@ -27,18 +32,20 @@ export async function GET(request) {
         success: true,
         kalanGun: null,
         bitisTarihi: null,
+        uyariGerekli: false,
       });
     }
 
-    const bugun = new Date();
     const bitis = new Date(user.licenseEndDate);
-    const kalanGun = Math.ceil((bitis - bugun) / (1000 * 60 * 60 * 24));
+    const kalanGun = calculateRemainingLicenseDays(user.licenseEndDate);
+    const uyariGerekli = isLicenseWarningPeriod(user.licenseEndDate);
 
     return NextResponse.json({
       success: true,
-      kalanGun: Math.max(kalanGun, 0),
+      kalanGun: kalanGun === null ? null : Math.max(kalanGun, 0),
       bitisTarihi: bitis.toLocaleDateString("tr-TR"),
-      licenseExpired: kalanGun < 0,
+      licenseExpired: kalanGun !== null && kalanGun < 0,
+      uyariGerekli,
     });
   } catch (error) {
     return NextResponse.json(

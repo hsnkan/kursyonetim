@@ -3,6 +3,7 @@ import dbConnect from "@/lib/db";
 import User from "@/models/User";
 import { getBrandingBySalonId } from "@/lib/branding";
 import { sendLicenseReminderEmails } from "@/lib/mail";
+import { calculateRemainingLicenseDays } from "@/lib/license";
 
 export async function GET(request) {
   try {
@@ -32,8 +33,7 @@ export async function GET(request) {
       if (!user.licenseEndDate) continue;
 
       const bitisTarihi = new Date(user.licenseEndDate);
-      const kalanMilisaniye = bitisTarihi - bugun;
-      const kalanGun = Math.ceil(kalanMilisaniye / (1000 * 60 * 60 * 24));
+      const kalanGun = calculateRemainingLicenseDays(user.licenseEndDate, bugun);
 
       if (kalanGun <= 30 && kalanGun > 0) {
         const salonBranding = user.salonId

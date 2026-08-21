@@ -105,7 +105,7 @@ export default function LoginPage() {
       setYukleniyor(false);
       setTimeout(() => {
         window.location.href = targetPath;
-      }, 1700);
+      }, 2600);
     } catch (err) {
       setHata("Doğrulama sırasında bir hata oluştu.");
       setYukleniyor(false);

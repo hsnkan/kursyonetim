@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import SalonKurulumTab from "./SalonKurulumTab";
+import { calculateRemainingLicenseDays } from "@/lib/license";
 
 export default function SuperAdminDashboard() {
   const HEFTANIN_GUNLERI = [
@@ -176,9 +177,9 @@ export default function SuperAdminDashboard() {
   const formatLisansBitis = (licenseEndDate) => {
     if (!licenseEndDate) return "—";
     const bitis = new Date(licenseEndDate);
-    const bugun = new Date();
-    const kalanGun = Math.ceil((bitis - bugun) / (1000 * 60 * 60 * 24));
+    const kalanGun = calculateRemainingLicenseDays(licenseEndDate);
     const tarih = bitis.toLocaleDateString("tr-TR");
+    if (kalanGun === null) return tarih;
     if (kalanGun < 0) return `${tarih} (süresi dolmuş)`;
     return `${tarih} (${kalanGun} gün kaldı)`;
   };

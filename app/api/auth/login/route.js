@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { getBrandingBySalonId } from "@/lib/branding";
 import { varsayilanDashboardYolu } from "@/lib/ozellikler";
+import { isLicenseExpired } from "@/lib/license";
 
 export async function POST(request) {
   try {
@@ -104,10 +105,7 @@ export async function POST(request) {
 
     // 💳 4. LİSANS SÜRESİ KONTROLÜ
     if (userRole !== "developer" && user?.licenseEndDate) {
-      const bugun = new Date();
-      const lisansBitis = new Date(user.licenseEndDate);
-
-      if (lisansBitis < bugun) {
+      if (isLicenseExpired(user.licenseEndDate)) {
         return NextResponse.json(
           {
             success: false,

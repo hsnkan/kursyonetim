@@ -12,6 +12,7 @@ export default function ProfilPage() {
   const [licenseInfo, setLicenseInfo] = useState({
     kalanGun: null,
     bitisTarihi: "",
+    uyariGerekli: false,
     loading: true,
   });
 
@@ -32,6 +33,7 @@ export default function ProfilPage() {
           setLicenseInfo({
             kalanGun: data.kalanGun,
             bitisTarihi: data.bitisTarihi,
+            uyariGerekli: Boolean(data.uyariGerekli),
             loading: false,
           });
         }
@@ -97,7 +99,7 @@ export default function ProfilPage() {
         setQrCode("");
         setMessage("🎉 Google Authenticator başarıyla aktifleştirildi!");
         setSuccessAnim(true);
-        setTimeout(() => setSuccessAnim(false), 1800);
+        setTimeout(() => setSuccessAnim(false), 2600);
       } else {
         setMessage("❌ " + data.error);
       }
@@ -126,6 +128,22 @@ export default function ProfilPage() {
 
       {/* 💳 1. KART: YILLIK LİSANS VE KULLANIM SÜRESİ DURUMU */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+        {!licenseInfo.loading &&
+          licenseInfo.uyariGerekli &&
+          licenseInfo.kalanGun !== null && (
+            <div className="bg-amber-500/15 border-2 border-amber-500/40 text-amber-200 rounded-xl p-4 text-sm font-bold flex items-start gap-3">
+              <span className="text-xl shrink-0">⚠️</span>
+              <div>
+                <p>Lisans yenileme uyarısı</p>
+                <p className="text-xs font-semibold text-amber-100/90 mt-1">
+                  Yazılım lisansınızın bitmesine{" "}
+                  <strong>{licenseInfo.kalanGun} gün</strong> kaldı. Kesintisiz
+                  kullanım için sistem yöneticinizle iletişime geçin.
+                </p>
+              </div>
+            </div>
+          )}
+
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -136,7 +154,7 @@ export default function ProfilPage() {
             </p>
           </div>
 
-          {!licenseInfo.loading && (
+          {!licenseInfo.loading && licenseInfo.kalanGun !== null && (
             <div
               className={`px-4 py-2 rounded-xl border text-sm font-black flex items-center gap-2 ${
                 licenseInfo.kalanGun <= 30
