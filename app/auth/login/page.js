@@ -4,7 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CLIENT_SITE } from "@/lib/siteConfig.client";
-import GymnastSuccessAnimation from "@/app/components/GymnastSuccessAnimation";
+import GymnastSuccessAnimation, {
+  GYMNAST_ANIM_MS,
+} from "@/app/components/GymnastSuccessAnimation";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -105,7 +107,7 @@ export default function LoginPage() {
       setYukleniyor(false);
       setTimeout(() => {
         window.location.href = targetPath;
-      }, 2600);
+      }, GYMNAST_ANIM_MS);
     } catch (err) {
       setHata("Doğrulama sırasında bir hata oluştu.");
       setYukleniyor(false);

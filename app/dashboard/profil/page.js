@@ -2,7 +2,9 @@
 import { useState, useEffect } from "react";
 import PageHeader from "@/app/components/PageHeader";
 import { IconProfile } from "@/app/components/NavIcons";
-import GymnastSuccessAnimation from "@/app/components/GymnastSuccessAnimation";
+import GymnastSuccessAnimation, {
+  GYMNAST_ANIM_MS,
+} from "@/app/components/GymnastSuccessAnimation";
 
 export default function ProfilPage() {
   const [loading, setLoading] = useState(false);
@@ -99,7 +101,7 @@ export default function ProfilPage() {
         setQrCode("");
         setMessage("🎉 Google Authenticator başarıyla aktifleştirildi!");
         setSuccessAnim(true);
-        setTimeout(() => setSuccessAnim(false), 2600);
+        setTimeout(() => setSuccessAnim(false), GYMNAST_ANIM_MS);
       } else {
         setMessage("❌ " + data.error);
       }
