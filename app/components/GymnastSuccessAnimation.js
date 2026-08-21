@@ -1,6 +1,6 @@
 "use client";
 
-/** 2FA başarı animasyonu — toplam 3 sn, kız önce, erkek 0.72 sn sonra */
+/** 2FA başarı animasyonu — toplam 3 sn, arka arkaya yuvarlanarak */
 export const GYMNAST_ANIM_MS = 3100;
 
 export default function GymnastSuccessAnimation({ active }) {
@@ -8,10 +8,18 @@ export default function GymnastSuccessAnimation({ active }) {
 
   return (
     <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
-      <span className="gymnast-seq gymnast-seq-1 fixed left-0 top-[33%] text-7xl md:text-8xl select-none leading-none">
+      <span
+        className="gymnast-seq gymnast-seq-1 gymnast-emoji fixed left-0 select-none"
+        style={{ top: "calc(50% - 8.333vw)" }}
+        aria-hidden
+      >
         🤸‍♀️
       </span>
-      <span className="gymnast-seq gymnast-seq-2 fixed left-0 top-[49%] text-7xl md:text-8xl select-none leading-none">
+      <span
+        className="gymnast-seq gymnast-seq-2 gymnast-emoji fixed left-0 select-none"
+        style={{ top: "calc(50% - 8.333vw)" }}
+        aria-hidden
+      >
         🤸‍♂️
       </span>
     </div>
