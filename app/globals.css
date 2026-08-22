@@ -92,10 +92,10 @@ body {
   animation: animate-shake 0.35s ease-in-out;
 }
 
-/* Logo — mockup: kalın çevresel 3D halka + duraklamalı dönüş */
-.logo-coin-tilt {
-  transform: rotateX(11deg);
-  transform-style: preserve-3d;
+/* 3D madalyon — yüz halkası + dönüşte silindir kenarı */
+.coin-cylinder-edge {
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
 }
 
 .logo-rim-3d-outer {
