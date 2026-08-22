@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { extractCardIdFromScan, metindenKartIdCikar } from "@/lib/mobileYoklama";
-import { kameraHataDetay } from "@/lib/kameraIzniYardim";
+import { extractCardIdFromScan, metindenKartIdCikar, isIosDevice } from "@/lib/mobileYoklama";
+import { kameraHataDetay, tekrarKameraIzniIste } from "@/lib/kameraIzniYardim";
 import KameraIzniRehberi from "@/app/components/KameraIzniRehberi";
 
 const OCR_INTERVAL_MS = 850;
@@ -20,6 +20,43 @@ const BARKOD_FORMATLARI = [
   "itf",
   "codabar",
 ];
+
+async function kameraKaynagiSec(Html5Qrcode) {
+  try {
+    const devices = await Html5Qrcode.getCameras();
+    if (devices?.length) {
+      const arka =
+        devices.find((d) => /back|rear|environment|arka/i.test(d.label)) ||
+        devices[devices.length - 1];
+      return arka.id;
+    }
+  } catch {
+    // getCameras bazen izin sonrası çalışır
+  }
+  return { facingMode: "environment" };
+}
+
+function taramaConfigOlustur() {
+  const ios = isIosDevice();
+  const config = {
+    fps: ios ? 10 : 15,
+    qrbox: (viewfinderWidth, viewfinderHeight) => {
+      const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+      const genislik = Math.floor(minEdge * 0.82);
+      return {
+        width: genislik,
+        height: Math.floor(genislik * (ios ? 0.75 : 0.82)),
+      };
+    },
+    disableFlip: false,
+  };
+
+  if (!ios) {
+    config.aspectRatio = 1.333333;
+  }
+
+  return config;
+}
 
 export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
   const [hata, setHata] = useState("");
@@ -219,6 +256,17 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
       }
 
       try {
+        const izinSonuc = await tekrarKameraIzniIste();
+        if (iptal) return;
+        if (!izinSonuc.basarili) {
+          setTaraniyor(false);
+          hataGoster({
+            name: izinSonuc.hata || "NotAllowedError",
+            message: izinSonuc.hata,
+          });
+          return;
+        }
+
         const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import(
           "html5-qrcode"
         );
@@ -246,18 +294,11 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
         });
         scannerRef.current = scanner;
 
+        const kameraKaynak = await kameraKaynagiSec(Html5Qrcode);
+
         await scanner.start(
-          { facingMode: { ideal: "environment" } },
-          {
-            fps: 15,
-            qrbox: (viewfinderWidth, viewfinderHeight) => {
-              const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-              const kutu = Math.floor(minEdge * 0.82);
-              return { width: kutu, height: kutu };
-            },
-            aspectRatio: 1.333333,
-            disableFlip: false,
-          },
+          kameraKaynak,
+          taramaConfigOlustur(),
           (decodedText) => {
             if (islemRef.current) return;
             const kartId = extractCardIdFromScan(decodedText);
@@ -273,7 +314,9 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
         setTaraniyor(false);
         setMod("kod");
         await barkodDedektorBaslat();
-        await ocrBaslat();
+        if (!isIosDevice()) {
+          await ocrBaslat();
+        }
       } catch (err) {
         console.error("Kamera tarayıcı hatası:", err);
         setTaraniyor(false);
@@ -303,7 +346,7 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
               📷 Kart Kodu Tara
             </h3>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              QR, barkod veya basılı kart numarası
+              Kamera izinlerini açın, kodu kareye hizalayın
             </p>
           </div>
           <button
@@ -332,10 +375,8 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
           )}
 
           {!taraniyor && !hata && (
-            <p className="text-center text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl p-2.5">
-              {mod === "numara"
-                ? "Kart numarasını kare ortasına hizalayın — okununca yoklama otomatik alınır."
-                : "Kodu kameraya gösterin..."}
+            <p className="text-center text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-2.5">
+              Kart kodunu kare ortasına getirin. Okununca yoklama otomatik alınır.
             </p>
           )}
 

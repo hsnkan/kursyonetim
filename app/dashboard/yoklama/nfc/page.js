@@ -197,7 +197,7 @@ export default function NfcYoklamaPage() {
 
       <PageHeader
         title="NFC Yoklama"
-        subtitle="USB okuyucu ile okutun veya isterseniz 📷 kamera ile kart kodunu tarayın."
+        subtitle="USB okuyucu ile kart okutun."
         icon={<IconNfc className="w-6 h-6" />}
         badge="Canlı Terminal"
       />
@@ -237,9 +237,10 @@ export default function NfcYoklamaPage() {
               Kamera ile Oku
             </span>
           </button>
-          <p className="text-[10px] text-slate-400 font-medium text-center max-w-xs">
-            İsteğe bağlı: kart üzerindeki QR, barkod veya numarayı kamera ile
-            okutabilirsiniz
+          <p className="text-[11px] text-slate-600 font-semibold text-center max-w-sm leading-relaxed">
+            Kamera ile okumak için tarayıcıda kamera izinlerini aktif edin. İzin
+            isteği gelirse «İzin Ver» deyin. iPhone: Ayarlar → Safari → Kamera →
+            İzin Ver, ardından sayfayı yenileyin.
           </p>
         </div>
 
