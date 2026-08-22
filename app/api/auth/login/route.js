@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import { getBrandingBySalonId } from "@/lib/branding";
 import { varsayilanDashboardYolu } from "@/lib/ozellikler";
 import { isLicenseExpired } from "@/lib/license";
+import { normalizeKullaniciAdi } from "@/lib/kullaniciAdi";
 
 export async function POST(request) {
   try {
@@ -52,9 +53,9 @@ export async function POST(request) {
       // 🔍 2. Normal Müşteri Doğrulaması
       user = await User.findOne({
         $or: [
-          { email: username.toLowerCase().trim() },
+          { kullaniciAdi: normalizeKullaniciAdi(username) },
           { adSoyad: username.trim() },
-          { username: username.trim() },
+          { email: username.toLowerCase().trim() },
         ],
         durum: "aktif",
       }).select(

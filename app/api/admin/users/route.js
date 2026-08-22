@@ -5,6 +5,11 @@ import KursSalon from "@/models/KursSalon";
 import bcrypt from "bcryptjs";
 import { requireRole } from "@/lib/auth";
 import { createInitialLicenseEndDate } from "@/lib/license";
+import {
+  isValidKullaniciAdi,
+  kullaniciAdiFromAdSoyad,
+  normalizeKullaniciAdi,
+} from "@/lib/kullaniciAdi";
 
 export async function GET(request) {
   try {
@@ -31,7 +36,7 @@ export async function POST(request) {
     const auth = requireRole(request, ["developer"]);
     if (auth.error) return auth.error;
 
-    const { salonId, salonAdi, adSoyad, email, sabitSifre } =
+    const { salonId, salonAdi, adSoyad, kullaniciAdi, email, sabitSifre } =
       await request.json();
 
     if ((!salonId && !salonAdi) || !email || !sabitSifre) {
@@ -39,7 +44,22 @@ export async function POST(request) {
         {
           success: false,
           error:
-            "Salon seçimi (veya salon adı), e-posta ve geçici şifre zorunludur.",
+            "Salon seçimi (veya salon adı), iletişim e-postası ve geçici şifre zorunludur.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const temizKullaniciAdi = normalizeKullaniciAdi(
+      kullaniciAdi || kullaniciAdiFromAdSoyad(adSoyad || email.split("@")[0]),
+    );
+
+    if (!isValidKullaniciAdi(temizKullaniciAdi)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Geçerli bir kullanıcı adı girin (3-40 karakter, e-posta formatı olmamalı).",
         },
         { status: 400 },
       );
@@ -62,6 +82,19 @@ export async function POST(request) {
       hedefSalonId = salon._id;
     }
 
+    const mevcutKullaniciAdi = await User.findOne({
+      kullaniciAdi: temizKullaniciAdi,
+    });
+    if (mevcutKullaniciAdi) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Bu kullanıcı adı zaten kullanılıyor.",
+        },
+        { status: 400 },
+      );
+    }
+
     const mevcutUser = await User.findOne({
       email: email.toLowerCase().trim(),
     });
@@ -81,7 +114,8 @@ export async function POST(request) {
     const newUser = await User.create({
       salonId: hedefSalonId,
       salonAdi: hedefSalonAdi,
-      adSoyad,
+      adSoyad: adSoyad || temizKullaniciAdi,
+      kullaniciAdi: temizKullaniciAdi,
       email: email.toLowerCase().trim(),
       sifreHash,
       licenseEndDate: lisansBitis,
@@ -104,7 +138,7 @@ export async function PATCH(request) {
     const auth = requireRole(request, ["developer"]);
     if (auth.error) return auth.error;
 
-    const { userId, salonAdi, adSoyad, email, geciciSifre } =
+    const { userId, salonAdi, adSoyad, kullaniciAdi, email, geciciSifre } =
       await request.json();
 
     if (!userId) {
@@ -119,6 +153,26 @@ export async function PATCH(request) {
     const updateFields = {};
     if (salonAdi) updateFields.salonAdi = salonAdi;
     if (adSoyad) updateFields.adSoyad = adSoyad;
+    if (kullaniciAdi) {
+      const temiz = normalizeKullaniciAdi(kullaniciAdi);
+      if (!isValidKullaniciAdi(temiz)) {
+        return NextResponse.json(
+          { success: false, error: "Geçersiz kullanıcı adı." },
+          { status: 400 },
+        );
+      }
+      const baska = await User.findOne({
+        kullaniciAdi: temiz,
+        _id: { $ne: userId },
+      });
+      if (baska) {
+        return NextResponse.json(
+          { success: false, error: "Bu kullanıcı adı zaten kullanılıyor." },
+          { status: 400 },
+        );
+      }
+      updateFields.kullaniciAdi = temiz;
+    }
     if (email) updateFields.email = email.toLowerCase().trim();
 
     if (geciciSifre && geciciSifre.trim() !== "") {

@@ -30,6 +30,7 @@ export default function SuperAdminDashboard() {
     salonId: "",
     salonAdi: "",
     adSoyad: "",
+    kullaniciAdi: "",
     email: "",
     sabitSifre: "",
   });
@@ -40,6 +41,7 @@ export default function SuperAdminDashboard() {
     userId: "",
     salonAdi: "",
     adSoyad: "",
+    kullaniciAdi: "",
     email: "",
     geciciSifre: "",
   });
@@ -141,6 +143,7 @@ export default function SuperAdminDashboard() {
           salonId: "",
           salonAdi: "",
           adSoyad: "",
+          kullaniciAdi: "",
           email: "",
           sabitSifre: "",
         });
@@ -645,7 +648,7 @@ export default function SuperAdminDashboard() {
               <thead className="bg-slate-800/60 text-xs uppercase text-slate-400 font-bold border-b border-slate-700">
                 <tr>
                   <th className="p-4">Salon / İşletme</th>
-                  <th className="p-4">Giriş E-Postası / Yetkili</th>
+                  <th className="p-4">Kullanıcı Adı / Yetkili</th>
                   <th className="p-4">Şifre Durumu</th>
                   <th className="p-4">2FA Durumu</th>
                   <th className="p-4">Lisans Bitiş</th>
@@ -660,10 +663,13 @@ export default function SuperAdminDashboard() {
                   >
                     <td className="p-4 font-bold text-white">{u.salonAdi}</td>
                     <td className="p-4 font-mono text-xs">
-                      <span className="text-amber-400 font-bold block">
-                        {u.email}
+                      <span className="text-amber-400 font-mono block">
+                        {u.kullaniciAdi || u.adSoyad || "—"}
                       </span>
                       <span className="text-slate-400">{u.adSoyad}</span>
+                      <span className="text-slate-500 text-[10px] block">
+                        {u.email}
+                      </span>
                       {u.kurtarmaEmail ? (
                         <span className="text-sky-400/80 block mt-1 text-[10px]">
                           Kurtarma: {u.kurtarmaEmail}
@@ -770,6 +776,7 @@ export default function SuperAdminDashboard() {
                               userId: u._id,
                               salonAdi: u.salonAdi || "",
                               adSoyad: u.adSoyad || "",
+                              kullaniciAdi: u.kullaniciAdi || "",
                               email: u.email || "",
                               geciciSifre: "",
                             });
@@ -1075,6 +1082,46 @@ export default function SuperAdminDashboard() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-black uppercase text-slate-400 mb-1">
+                      Kullanıcı Adı (Giriş)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="ahmet.yilmaz"
+                      value={yeniMusteriForm.kullaniciAdi}
+                      onChange={(e) =>
+                        setYeniMusteriForm({
+                          ...yeniMusteriForm,
+                          kullaniciAdi: e.target.value,
+                        })
+                      }
+                      className="w-full bg-slate-950 border border-slate-700 text-white px-3.5 py-2.5 rounded-xl text-xs outline-none focus:border-emerald-500 font-mono font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-black uppercase text-slate-400 mb-1">
+                      İletişim E-Postası
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="salon@balans.com"
+                      value={yeniMusteriForm.email}
+                      onChange={(e) =>
+                        setYeniMusteriForm({
+                          ...yeniMusteriForm,
+                          email: e.target.value,
+                        })
+                      }
+                      className="w-full bg-slate-950 border border-slate-700 text-white px-3.5 py-2.5 rounded-xl text-xs outline-none focus:border-emerald-500 font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-black uppercase text-slate-400 mb-1">
                       Yetkili Ad Soyad
                     </label>
                     <input
@@ -1086,25 +1133,6 @@ export default function SuperAdminDashboard() {
                         setYeniMusteriForm({
                           ...yeniMusteriForm,
                           adSoyad: e.target.value,
-                        })
-                      }
-                      className="w-full bg-slate-950 border border-slate-700 text-white px-3.5 py-2.5 rounded-xl text-xs outline-none focus:border-emerald-500 font-bold"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-black uppercase text-slate-400 mb-1">
-                      Yetkili E-Posta (Giriş Adı)
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      placeholder="salon@balans.com"
-                      value={yeniMusteriForm.email}
-                      onChange={(e) =>
-                        setYeniMusteriForm({
-                          ...yeniMusteriForm,
-                          email: e.target.value,
                         })
                       }
                       className="w-full bg-slate-950 border border-slate-700 text-white px-3.5 py-2.5 rounded-xl text-xs outline-none focus:border-emerald-500 font-bold"
@@ -1218,7 +1246,25 @@ export default function SuperAdminDashboard() {
 
                 <div>
                   <label className="block text-[11px] font-black uppercase text-slate-400 mb-1">
-                    Giriş E-Posta Adresi (Kullanıcı Adı)
+                    Kullanıcı Adı (Giriş)
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={duzenleForm.kullaniciAdi}
+                    onChange={(e) =>
+                      setDuzenleForm({
+                        ...duzenleForm,
+                        kullaniciAdi: e.target.value,
+                      })
+                    }
+                    className="w-full bg-slate-800 border border-slate-700 text-amber-400 font-mono px-3.5 py-2.5 rounded-xl text-xs outline-none focus:border-amber-400 font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-black uppercase text-slate-400 mb-1">
+                    İletişim E-Postası
                   </label>
                   <input
                     type="email"
@@ -1227,7 +1273,7 @@ export default function SuperAdminDashboard() {
                     onChange={(e) =>
                       setDuzenleForm({ ...duzenleForm, email: e.target.value })
                     }
-                    className="w-full bg-slate-800 border border-slate-700 text-amber-400 font-mono px-3.5 py-2.5 rounded-xl text-xs outline-none focus:border-amber-400 font-bold"
+                    className="w-full bg-slate-800 border border-slate-700 text-white font-mono px-3.5 py-2.5 rounded-xl text-xs outline-none focus:border-amber-400 font-bold"
                   />
                 </div>
 

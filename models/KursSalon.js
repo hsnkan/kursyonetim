@@ -69,6 +69,11 @@ const KursSalonSchema = new mongoose.Schema(
     raporFooterMetni: { type: String, default: "", trim: true },
     /** Teslim checklist — canlı URL notu */
     canliSiteUrl: { type: String, default: "", trim: true },
+    /** WhatsApp duyuru şablonları (baslik + icerik) */
+    duyuruSablonlari: {
+      type: mongoose.Schema.Types.Mixed,
+      default: () => ({}),
+    },
     ozellikler: {
       type: mongoose.Schema.Types.Mixed,
       default: () => ({}),

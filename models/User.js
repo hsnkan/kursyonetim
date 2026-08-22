@@ -8,6 +8,14 @@ const UserSchema = new mongoose.Schema(
       required: [true, "Ad Soyad alanı zorunludur."],
       trim: true,
     },
+    /** Giriş için kullanılan kullanıcı adı (e-posta değil) */
+    kullaniciAdi: {
+      type: String,
+      unique: true,
+      sparse: true,
+      lowercase: true,
+      trim: true,
+    },
     email: {
       type: String,
       required: [true, "E-posta adresi zorunludur."],

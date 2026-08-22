@@ -155,14 +155,14 @@ export default function LoginPage() {
           <form onSubmit={handleGiris} className="space-y-4 text-left">
             <div>
               <label className="block text-xs font-black text-slate-700 uppercase mb-1">
-                Kullanıcı Adı / E-Posta
+                Kullanıcı Adı
               </label>
               <input
                 type="text"
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Yönetici e-posta adresi"
+                placeholder="Örn: ahmet.yilmaz"
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 text-slate-900"
               />
             </div>

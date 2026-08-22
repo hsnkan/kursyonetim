@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useBranding } from "@/app/components/BrandingProvider";
 import PageHeader from "@/app/components/PageHeader";
 import { IconAnnounce } from "@/app/components/NavIcons";
@@ -13,38 +13,50 @@ export default function DuyurularPage() {
 
   // Seçili Grup & Duyuru İçerik State'leri
   const [seciliGrup, setSeciliGrup] = useState(null);
+  const [duyuruBaslik, setDuyuruBaslik] = useState("");
   const [duyuruMetni, setDuyuruMetni] = useState("");
   const [seciliSablon, setSeciliSablon] = useState("");
+  const [sablonlar, setSablonlar] = useState({});
+  const [sablonKaydediliyor, setSablonKaydediliyor] = useState(false);
+  const [sablonMesaj, setSablonMesaj] = useState("");
   const [secilenVeliKeyleri, setSecilenVeliKeyleri] = useState([]);
   const [gonderilenVeliler, setGonderilenVeliler] = useState({});
   const [gonderimDurum, setGonderimDurum] = useState(null);
 
-  // HAZIR MESAJ ŞABLONLARI
-  const sablonlar = useMemo(
-    () => ({
-      GENEL: `${branding.salonAdi} ailesi olarak tüm sporcularımıza ve velilerimize sağlıklı, başarılı günler dileriz. Güncel antrenman takvimimiz ve duyurularımız hakkında bilgilendirmelerimiz devam edecektir.`,
-      ODEME: `${branding.salonAdi} bünyesinde eğitim alan sporcularımızın aylık kurs aidat ödeme zamanı gelmiştir. Ödemesini gerçekleştiren velilerimiz bu mesajı dikkate almayabilirler. İyi günler dileriz.`,
-      ARA_TATIL:
-        "Değerli Velilerimiz, okulların ara tatil dönemine girmesi nedeniyle antrenman saatlerimizde düzenlemeye gidilmiştir. Detaylı antrenman programı gruplarınızda paylaşılacaktır. Tüm sporcularımıza iyi tatiller dileriz.",
-      RESMI_TATIL:
-        "Değerli Velilerimiz, yaklaşan resmi tatil nedeniyle akademimiz belirtilen tarihlerde kapalı olacaktır. Tatil sonrası antrenmanlarımız normal seyriyle devam edecektir. Bilgilerinize sunarız.",
-      KAR_TATILI:
-        "Değerli Velilerimiz, bölgemizdeki olumsuz hava şartları ve kar yağışı nedeniyle sporcularımızın güvenliği açısından bugün yapılacak tüm antrenmanlarımız iptal edilmiştir. Telafi dersleri hakkında bilgilendirme yapılacaktır.",
-      YARISMA:
-        "Değerli Velilerimiz, önümüzdeki yarışma ve turnuva dönemi hazırlıkları kapsamında antrenman tempomuz artırılmıştır. Sporcularımızın antrenman saatlerine ve beslenme düzenlerine hassasiyet göstermenizi rica ederiz.",
-    }),
-    [branding.salonAdi],
-  );
+  // HAZIR MESAJ ŞABLON ETİKETLERİ
+  const sablonEtiketleri = {
+    GENEL: "📢 Genel Bilgilendirme",
+    ODEME: "💳 Aidat / Ödeme Duyurusu",
+    ARA_TATIL: "🏝️ Ara Tatil Duyurusu",
+    RESMI_TATIL: "🇹🇷 Resmi Tatil Duyurusu",
+    KAR_TATILI: "❄️ Kar / Hava Şartı Tatili",
+    YARISMA: "🏆 Yarışma / Turnuva Dönemi",
+  };
 
   useEffect(() => {
     veriGetir();
-    setDuyuruMetni(sablonlar.GENEL);
-    setSeciliSablon("GENEL");
   }, []);
+
+  const sablonYukle = async () => {
+    try {
+      const res = await fetch("/api/duyuru-sablonlari");
+      const data = await res.json();
+      if (data.success) {
+        setSablonlar(data.data || {});
+        const ilkAnahtar = "GENEL";
+        setSeciliSablon(ilkAnahtar);
+        setDuyuruBaslik(data.data?.[ilkAnahtar]?.baslik || "");
+        setDuyuruMetni(data.data?.[ilkAnahtar]?.icerik || "");
+      }
+    } catch {
+      // varsayılan metinler kullanılır
+    }
+  };
 
   const veriGetir = async () => {
     setLoading(true);
     try {
+      await sablonYukle();
       const [grupRes, ogrenciRes] = await Promise.all([
         fetch("/api/gruplar", { cache: "no-store" }),
         fetch("/api/ogrenciler", { cache: "no-store" }),
@@ -75,8 +87,41 @@ export default function DuyurularPage() {
 
   const sablonSecildi = (key) => {
     setSeciliSablon(key);
-    if (sablonlar[key]) {
-      setDuyuruMetni(sablonlar[key]);
+    const sablon = sablonlar[key];
+    if (sablon) {
+      setDuyuruBaslik(sablon.baslik || "");
+      setDuyuruMetni(sablon.icerik || "");
+    }
+  };
+
+  const sablonKaydet = async () => {
+    if (!duyuruBaslik.trim() || !duyuruMetni.trim()) {
+      return alert("Duyuru başlığı ve metni zorunludur.");
+    }
+
+    setSablonKaydediliyor(true);
+    setSablonMesaj("");
+    try {
+      const res = await fetch("/api/duyuru-sablonlari", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          anahtar: seciliSablon,
+          baslik: duyuruBaslik.trim(),
+          icerik: duyuruMetni.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSablonlar(data.data || {});
+        setSablonMesaj("✅ Duyuru şablonu kaydedildi.");
+      } else {
+        setSablonMesaj("❌ " + (data.error || "Kayıt başarısız."));
+      }
+    } catch {
+      setSablonMesaj("❌ Bağlantı hatası.");
+    } finally {
+      setSablonKaydediliyor(false);
     }
   };
 
@@ -161,7 +206,7 @@ export default function DuyurularPage() {
 
     const temizTel = telefon.replace(/\D/g, "");
     const tel = temizTel.startsWith("90") ? temizTel : `90${temizTel}`;
-    const mesaj = `Sayın ${veli.veliAdSoyad} (${veli.yakinlik}),\n\n*${veli.ogrenciAdSoyad}* sporcumuzun kayıtlı olduğu *${seciliGrupAdi}* grubu duyurusudur:\n\n${duyuruMetni}\n\n${branding.whatsappImza}`;
+    const mesaj = `Sayın ${veli.veliAdSoyad} (${veli.yakinlik}),\n\n*${duyuruBaslik || seciliGrupAdi + " Duyurusu"}*\n*${veli.ogrenciAdSoyad}* sporcumuzun kayıtlı olduğu *${seciliGrupAdi}* grubu duyurusudur:\n\n${duyuruMetni}\n\n${branding.whatsappImza}`;
 
     window.open(
       `https://wa.me/${tel}?text=${encodeURIComponent(mesaj)}`,
@@ -214,6 +259,7 @@ export default function DuyurularPage() {
         body: JSON.stringify({
           grupAdi: seciliGrupAdi,
           sablon: seciliSablon,
+          duyuruBaslik: duyuruBaslik.trim(),
           mesajMetni: duyuruMetni.trim(),
           aliciKeys:
             secilenVeliKeyleri.length > 0 ? secilenVeliKeyleri : undefined,
@@ -285,14 +331,26 @@ export default function DuyurularPage() {
                   onChange={(e) => sablonSecildi(e.target.value)}
                   className="bg-amber-100 border-2 border-amber-400 text-slate-950 font-black text-xs px-3 py-1.5 rounded-xl outline-none cursor-pointer"
                 >
-                  <option value="GENEL">📢 Genel Bilgilendirme</option>
-                  <option value="ODEME">💳 Aidat / Ödeme Duyurusu</option>
-                  <option value="ARA_TATIL">🏝️ Ara Tatil Duyurusu</option>
-                  <option value="RESMI_TATIL">🇹🇷 Resmi Tatil Duyurusu</option>
-                  <option value="KAR_TATILI">❄️ Kar / Hava Şartı Tatili</option>
-                  <option value="YARISMA">🏆 Yarışma / Turnuva Dönemi</option>
+                  {Object.entries(sablonEtiketleri).map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
                 </select>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-black uppercase text-slate-600 mb-1">
+                Duyuru Başlığı
+              </label>
+              <input
+                type="text"
+                value={duyuruBaslik}
+                onChange={(e) => setDuyuruBaslik(e.target.value)}
+                placeholder="Örn: Ara Tatil Duyurusu"
+                className="w-full border-2 border-slate-300 p-3 rounded-2xl text-sm font-bold text-slate-950 outline-none focus:border-amber-500 bg-slate-50"
+              />
             </div>
 
             <textarea
@@ -302,6 +360,23 @@ export default function DuyurularPage() {
               onChange={(e) => setDuyuruMetni(e.target.value)}
               className="w-full border-2 border-slate-300 p-4 rounded-2xl text-sm font-semibold text-slate-950 outline-none focus:border-amber-500 bg-slate-50 placeholder:text-slate-400"
             ></textarea>
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-[10px] text-slate-500 font-semibold">
+                Şablonu düzenleyip kaydedin; işletmenize özel kalıcı olur.
+              </p>
+              <button
+                type="button"
+                onClick={sablonKaydet}
+                disabled={sablonKaydediliyor}
+                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-5 py-2.5 rounded-xl text-xs cursor-pointer disabled:opacity-50"
+              >
+                {sablonKaydediliyor ? "Kaydediliyor..." : "💾 Duyuruyu Kaydet"}
+              </button>
+            </div>
+            {sablonMesaj && (
+              <p className="text-xs font-bold text-emerald-700">{sablonMesaj}</p>
+            )}
           </div>
 
           {/* SEÇİLİ HEDEF GRUP VE ALTINDAKİ VELİ TELEFONLARINA İLET ALANI */}

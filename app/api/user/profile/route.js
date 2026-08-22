@@ -5,6 +5,11 @@ import dbConnect from "@/lib/db";
 import User from "@/models/User";
 import { requireAuth } from "@/lib/auth";
 import { getBrandingBySalonId } from "@/lib/branding";
+import {
+  isValidKullaniciAdi,
+  normalizeKullaniciAdi,
+} from "@/lib/kullaniciAdi";
+import { isValidSecurityQuestion } from "@/lib/securityQuestions";
 
 function normalizeEmail(value) {
   return String(value || "")
@@ -24,6 +29,7 @@ function buildSessionCookie(user, branding) {
     {
       userId: user._id,
       adSoyad: user.adSoyad,
+      kullaniciAdi: user.kullaniciAdi || user.adSoyad,
       email: user.email,
       rol: user.rol,
       salonId: user.salonId ? String(user.salonId) : null,
@@ -43,7 +49,7 @@ export async function GET(request) {
 
     await dbConnect();
     const user = await User.findById(auth.session.userId).select(
-      "adSoyad email kurtarmaEmail sifreDegistirmeZorunlu rol",
+      "adSoyad kullaniciAdi email kurtarmaEmail sifreDegistirmeZorunlu rol securityQuestion +securityAnswerHash",
     );
 
     if (!user) {
@@ -57,10 +63,13 @@ export async function GET(request) {
       success: true,
       user: {
         adSoyad: user.adSoyad,
+        kullaniciAdi: user.kullaniciAdi || "",
         email: user.email,
         kurtarmaEmail: user.kurtarmaEmail || "",
         sifreDegistirmeZorunlu: Boolean(user.sifreDegistirmeZorunlu),
         rol: user.rol,
+        securityQuestion: user.securityQuestion || "",
+        hasSecurityAnswer: Boolean(user.securityAnswerHash),
       },
     });
   } catch (error) {
@@ -87,11 +96,20 @@ export async function PATCH(request) {
     }
 
     const body = await request.json();
-    const { kurtarmaEmail, email, mevcutSifre, yeniSifre } = body;
+    const {
+      adSoyad,
+      kullaniciAdi,
+      kurtarmaEmail,
+      email,
+      mevcutSifre,
+      yeniSifre,
+      securityQuestion,
+      gizliCevap,
+    } = body;
 
     await dbConnect();
     const user = await User.findById(auth.session.userId).select(
-      "+sifreHash adSoyad email kurtarmaEmail salonId salonAdi rol sifreDegistirmeZorunlu",
+      "+sifreHash +securityAnswerHash adSoyad kullaniciAdi email kurtarmaEmail salonId salonAdi rol sifreDegistirmeZorunlu securityQuestion",
     );
 
     if (!user) {
@@ -101,9 +119,26 @@ export async function PATCH(request) {
       );
     }
 
+    const kullaniciAdiDegisti =
+      kullaniciAdi !== undefined &&
+      normalizeKullaniciAdi(kullaniciAdi) !==
+        normalizeKullaniciAdi(user.kullaniciAdi || "");
+    const emailDegisti =
+      email !== undefined &&
+      normalizeEmail(email) !== normalizeEmail(user.email);
+    const sifreDegisiyor = yeniSifre && String(yeniSifre).length > 0;
+    const gizliCevapDegisiyor =
+      gizliCevap !== undefined && String(gizliCevap).trim().length > 0;
+    const gizliSoruDegisiyor =
+      securityQuestion !== undefined &&
+      securityQuestion !== (user.securityQuestion || "");
+
     const needsPassword =
-      (email && normalizeEmail(email) !== user.email) ||
-      (yeniSifre && String(yeniSifre).length > 0);
+      kullaniciAdiDegisti ||
+      emailDegisti ||
+      sifreDegisiyor ||
+      gizliCevapDegisiyor ||
+      gizliSoruDegisiyor;
 
     if (needsPassword) {
       if (!mevcutSifre) {
@@ -125,7 +160,44 @@ export async function PATCH(request) {
       }
     }
 
-    let emailChanged = false;
+    let sessionRefresh = false;
+
+    if (adSoyad !== undefined && String(adSoyad).trim()) {
+      user.adSoyad = String(adSoyad).trim();
+      sessionRefresh = true;
+    }
+
+    if (kullaniciAdi !== undefined) {
+      const yeniKullaniciAdi = normalizeKullaniciAdi(kullaniciAdi);
+      if (!isValidKullaniciAdi(yeniKullaniciAdi)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "Geçerli bir kullanıcı adı girin (3-40 karakter, e-posta formatı olmamalı).",
+          },
+          { status: 400 },
+        );
+      }
+
+      if (yeniKullaniciAdi !== normalizeKullaniciAdi(user.kullaniciAdi || "")) {
+        const baska = await User.findOne({
+          kullaniciAdi: yeniKullaniciAdi,
+          _id: { $ne: user._id },
+        });
+        if (baska) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: "Bu kullanıcı adı başka bir hesapta kullanılıyor.",
+            },
+            { status: 400 },
+          );
+        }
+        user.kullaniciAdi = yeniKullaniciAdi;
+        sessionRefresh = true;
+      }
+    }
 
     if (kurtarmaEmail !== undefined) {
       const temiz = normalizeEmail(kurtarmaEmail);
@@ -142,16 +214,16 @@ export async function PATCH(request) {
       const yeniEmail = normalizeEmail(email);
       if (!yeniEmail || !isValidEmail(yeniEmail)) {
         return NextResponse.json(
-          {
-            success: false,
-            error: "Geçerli bir giriş e-postası (kullanıcı adı) girin.",
-          },
+          { success: false, error: "Geçerli bir iletişim e-postası girin." },
           { status: 400 },
         );
       }
 
       if (yeniEmail !== user.email) {
-        const baska = await User.findOne({ email: yeniEmail, _id: { $ne: user._id } });
+        const baska = await User.findOne({
+          email: yeniEmail,
+          _id: { $ne: user._id },
+        });
         if (baska) {
           return NextResponse.json(
             {
@@ -162,11 +234,34 @@ export async function PATCH(request) {
           );
         }
         user.email = yeniEmail;
-        emailChanged = true;
+        sessionRefresh = true;
       }
     }
 
-    if (yeniSifre !== undefined && String(yeniSifre).length > 0) {
+    if (securityQuestion !== undefined) {
+      if (securityQuestion && !isValidSecurityQuestion(securityQuestion)) {
+        return NextResponse.json(
+          { success: false, error: "Geçersiz gizli soru seçimi." },
+          { status: 400 },
+        );
+      }
+      user.securityQuestion = securityQuestion || undefined;
+    }
+
+    if (gizliCevapDegisiyor) {
+      if (!securityQuestion && !user.securityQuestion) {
+        return NextResponse.json(
+          { success: false, error: "Önce bir gizli soru seçmelisiniz." },
+          { status: 400 },
+        );
+      }
+      user.securityAnswerHash = await bcrypt.hash(
+        String(gizliCevap).trim().toLowerCase(),
+        10,
+      );
+    }
+
+    if (sifreDegisiyor) {
       if (String(yeniSifre).length < 6) {
         return NextResponse.json(
           { success: false, error: "Yeni şifre en az 6 karakter olmalıdır." },
@@ -188,13 +283,16 @@ export async function PATCH(request) {
       message: "Hesap bilgileriniz güncellendi.",
       user: {
         adSoyad: user.adSoyad,
+        kullaniciAdi: user.kullaniciAdi || "",
         email: user.email,
         kurtarmaEmail: user.kurtarmaEmail || "",
         sifreDegistirmeZorunlu: Boolean(user.sifreDegistirmeZorunlu),
+        securityQuestion: user.securityQuestion || "",
+        hasSecurityAnswer: Boolean(user.securityAnswerHash),
       },
     });
 
-    if (emailChanged) {
+    if (sessionRefresh) {
       const cookieData = buildSessionCookie(user, branding);
       if (cookieData) {
         response.cookies.set("session_token", cookieData.sessionToken, {

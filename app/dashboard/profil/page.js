@@ -7,6 +7,12 @@ import GymnastSuccessAnimation, {
   GYMNAST_ANIM_MS,
 } from "@/app/components/GymnastSuccessAnimation";
 import { useBranding } from "@/app/components/BrandingProvider";
+import LicenseStatusBadge, {
+  LicenseWarningBanner,
+  dismissLicenseBanner,
+  isLicenseBannerDismissed,
+} from "@/app/components/LicenseStatusBadge";
+import { SECURITY_QUESTIONS } from "@/lib/securityQuestions";
 
 export default function ProfilPage() {
   const branding = useBranding();
@@ -15,14 +21,22 @@ export default function ProfilPage() {
   const [message, setMessage] = useState("");
 
   const [hesap, setHesap] = useState({
+    adSoyad: "",
+    kullaniciAdi: "",
     email: "",
     kurtarmaEmail: "",
+    securityQuestion: "",
+    hasSecurityAnswer: false,
     sifreDegistirmeZorunlu: false,
     loading: true,
   });
   const [hesapForm, setHesapForm] = useState({
+    adSoyad: "",
+    kullaniciAdi: "",
     email: "",
     kurtarmaEmail: "",
+    securityQuestion: "",
+    gizliCevap: "",
     mevcutSifre: "",
     yeniSifre: "",
     yeniSifreTekrar: "",
@@ -33,8 +47,10 @@ export default function ProfilPage() {
     kalanGun: null,
     bitisTarihi: "",
     uyariGerekli: false,
+    sinirsiz: false,
     loading: true,
   });
+  const [licenseBannerDismissed, setLicenseBannerDismissed] = useState(false);
 
   // 2FA State'leri
   const [qrCode, setQrCode] = useState("");
@@ -61,8 +77,12 @@ export default function ProfilPage() {
             kalanGun: data.kalanGun,
             bitisTarihi: data.bitisTarihi,
             uyariGerekli: Boolean(data.uyariGerekli),
+            sinirsiz: Boolean(data.sinirsiz),
             loading: false,
           });
+          setLicenseBannerDismissed(
+            isLicenseBannerDismissed(data.bitisTarihi),
+          );
         }
       } catch {
         setLicenseInfo((prev) => ({ ...prev, loading: false }));
@@ -78,15 +98,22 @@ export default function ProfilPage() {
         const data = await res.json();
         if (data.success) {
           setHesap({
+            adSoyad: data.user.adSoyad || "",
+            kullaniciAdi: data.user.kullaniciAdi || "",
             email: data.user.email || "",
             kurtarmaEmail: data.user.kurtarmaEmail || "",
+            securityQuestion: data.user.securityQuestion || "",
+            hasSecurityAnswer: Boolean(data.user.hasSecurityAnswer),
             sifreDegistirmeZorunlu: Boolean(data.user.sifreDegistirmeZorunlu),
             loading: false,
           });
           setHesapForm((prev) => ({
             ...prev,
+            adSoyad: data.user.adSoyad || "",
+            kullaniciAdi: data.user.kullaniciAdi || "",
             email: data.user.email || "",
             kurtarmaEmail: data.user.kurtarmaEmail || "",
+            securityQuestion: data.user.securityQuestion || "",
           }));
         } else {
           setHesap((prev) => ({ ...prev, loading: false }));
@@ -124,9 +151,15 @@ export default function ProfilPage() {
     setMessage("");
     setLoading(true);
 
+    const kullaniciAdiDegisti =
+      hesapForm.kullaniciAdi.trim().toLowerCase() !==
+      (hesap.kullaniciAdi || "").trim().toLowerCase();
     const emailDegisti =
       hesapForm.email.trim().toLowerCase() !== hesap.email.toLowerCase();
     const sifreDegisiyor = hesapForm.yeniSifre.length > 0;
+    const gizliCevapDegisiyor = hesapForm.gizliCevap.trim().length > 0;
+    const gizliSoruDegisti =
+      hesapForm.securityQuestion !== (hesap.securityQuestion || "");
 
     if (sifreDegisiyor) {
       if (hesapForm.yeniSifre.length < 6) {
@@ -141,9 +174,16 @@ export default function ProfilPage() {
       }
     }
 
-    if ((emailDegisti || sifreDegisiyor) && !hesapForm.mevcutSifre) {
+    if (
+      (kullaniciAdiDegisti ||
+        emailDegisti ||
+        sifreDegisiyor ||
+        gizliCevapDegisiyor ||
+        gizliSoruDegisti) &&
+      !hesapForm.mevcutSifre
+    ) {
       setMessage(
-        "❌ E-posta veya şifre değiştirmek için mevcut şifrenizi girmelisiniz.",
+        "❌ Kullanıcı adı, e-posta, şifre veya gizli soru değiştirmek için mevcut şifrenizi girmelisiniz.",
       );
       setLoading(false);
       return;
@@ -154,8 +194,14 @@ export default function ProfilPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          adSoyad: hesapForm.adSoyad.trim(),
+          kullaniciAdi: hesapForm.kullaniciAdi.trim(),
           email: hesapForm.email.trim(),
           kurtarmaEmail: hesapForm.kurtarmaEmail.trim(),
+          securityQuestion: hesapForm.securityQuestion || undefined,
+          gizliCevap: gizliCevapDegisiyor
+            ? hesapForm.gizliCevap.trim()
+            : undefined,
           mevcutSifre: hesapForm.mevcutSifre || undefined,
           yeniSifre: sifreDegisiyor ? hesapForm.yeniSifre : undefined,
         }),
@@ -168,15 +214,23 @@ export default function ProfilPage() {
       }
 
       setHesap({
+        adSoyad: data.user.adSoyad,
+        kullaniciAdi: data.user.kullaniciAdi || "",
         email: data.user.email,
         kurtarmaEmail: data.user.kurtarmaEmail || "",
+        securityQuestion: data.user.securityQuestion || "",
+        hasSecurityAnswer: Boolean(data.user.hasSecurityAnswer),
         sifreDegistirmeZorunlu: Boolean(data.user.sifreDegistirmeZorunlu),
         loading: false,
       });
       setHesapForm((prev) => ({
         ...prev,
+        adSoyad: data.user.adSoyad,
+        kullaniciAdi: data.user.kullaniciAdi || "",
         email: data.user.email,
         kurtarmaEmail: data.user.kurtarmaEmail || "",
+        securityQuestion: data.user.securityQuestion || "",
+        gizliCevap: "",
         mevcutSifre: "",
         yeniSifre: "",
         yeniSifreTekrar: "",
@@ -325,9 +379,21 @@ export default function ProfilPage() {
 
       <PageHeader
         title="Hesap, Lisans ve Güvenlik"
-        subtitle="Lisans sürenizi, teknik destek izinlerinizi ve Google Authenticator güvenliğinizi yönetin."
+        subtitle="Lisans sürenizi, giriş bilgilerinizi, gizli sorunuzu ve güvenlik ayarlarınızı yönetin."
         icon={<IconProfile className="w-6 h-6" />}
-      />
+      >
+        <LicenseStatusBadge licenseInfo={licenseInfo} />
+      </PageHeader>
+
+      {!licenseBannerDismissed && (
+        <LicenseWarningBanner
+          licenseInfo={licenseInfo}
+          onDismiss={() => {
+            dismissLicenseBanner(licenseInfo.bitisTarihi);
+            setLicenseBannerDismissed(true);
+          }}
+        />
+      )}
 
       {message && (
         <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-sm font-medium">
@@ -342,10 +408,10 @@ export default function ProfilPage() {
             👤 Hesap ve Giriş Bilgileri
           </h2>
           <p className="text-slate-400 text-xs mt-1 leading-relaxed max-w-xl">
-            Giriş e-postanız (kullanıcı adınız), kurtarma e-postanız ve şifrenizi
-            buradan yönetin. Şifre sıfırlama bağlantısı{" "}
-            <strong>kurtarma e-postanıza</strong> gider; tanımlı değilse giriş
-            e-postanıza gönderilir.
+            Giriş kullanıcı adınız, iletişim e-postanız, kurtarma e-postanız,
+            gizli sorunuz ve şifrenizi buradan yönetin. Girişte{" "}
+            <strong>kullanıcı adınız</strong> kullanılır; e-posta adresi yalnızca
+            iletişim ve şifre sıfırlama içindir.
           </p>
         </div>
 
@@ -363,7 +429,39 @@ export default function ProfilPage() {
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-[11px] font-black uppercase text-slate-400 block mb-1">
-                  Giriş E-Postası (Kullanıcı Adı)
+                  Ad Soyad
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={hesapForm.adSoyad}
+                  onChange={(e) =>
+                    setHesapForm({ ...hesapForm, adSoyad: e.target.value })
+                  }
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-black uppercase text-slate-400 block mb-1">
+                  Kullanıcı Adı (Giriş)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={hesapForm.kullaniciAdi}
+                  onChange={(e) =>
+                    setHesapForm({
+                      ...hesapForm,
+                      kullaniciAdi: e.target.value,
+                    })
+                  }
+                  placeholder="ornek: ahmet.yilmaz"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400 font-mono"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-black uppercase text-slate-400 block mb-1">
+                  İletişim E-Postası
                 </label>
                 <input
                   type="email"
@@ -396,10 +494,64 @@ export default function ProfilPage() {
 
             {!hesapForm.kurtarmaEmail && (
               <p className="text-[10px] text-amber-400/90 font-semibold">
-                Kurtarma e-postası tanımlı değil — şifre sıfırlama bağlantısı giriş
-                e-postanıza gider.
+                Kurtarma e-postası tanımlı değil — şifre sıfırlama bağlantısı
+                iletişim e-postanıza gider.
               </p>
             )}
+
+            <div className="border-t border-slate-800 pt-4 space-y-3">
+              <p className="text-xs font-bold text-slate-300">
+                Gizli Soru ve Cevap
+              </p>
+              <p className="text-[10px] text-slate-500">
+                E-posta erişiminiz olmadığında şifre sıfırlamak için kullanılır.
+                {hesap.hasSecurityAnswer
+                  ? " Mevcut cevabınız kayıtlı; değiştirmek için yeni cevap girin."
+                  : " Henüz tanımlı değil."}
+              </p>
+              <div>
+                <label className="text-[11px] font-black uppercase text-slate-400 block mb-1">
+                  Gizli Soru
+                </label>
+                <select
+                  value={hesapForm.securityQuestion}
+                  onChange={(e) =>
+                    setHesapForm({
+                      ...hesapForm,
+                      securityQuestion: e.target.value,
+                    })
+                  }
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-400"
+                >
+                  <option value="">— Soru seçin —</option>
+                  {SECURITY_QUESTIONS.map((soru) => (
+                    <option key={soru} value={soru}>
+                      {soru}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-[11px] font-black uppercase text-slate-400 block mb-1">
+                  Gizli Cevap
+                </label>
+                <PasswordInput
+                  value={hesapForm.gizliCevap}
+                  onChange={(e) =>
+                    setHesapForm({
+                      ...hesapForm,
+                      gizliCevap: e.target.value,
+                    })
+                  }
+                  placeholder={
+                    hesap.hasSecurityAnswer
+                      ? "Değiştirmek için yeni cevap girin"
+                      : "Gizli cevabınızı girin"
+                  }
+                  inputClassName="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-400"
+                />
+              </div>
+            </div>
 
             <div className="border-t border-slate-800 pt-4 space-y-3">
               <p className="text-xs font-bold text-slate-300">Şifre Değiştir</p>
@@ -463,46 +615,16 @@ export default function ProfilPage() {
         )}
       </div>
 
-      {/* 💳 1. KART: YILLIK LİSANS VE KULLANIM SÜRESİ DURUMU */}
+      {/* 💳 LİSANS DETAY */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-        {!licenseInfo.loading &&
-          licenseInfo.uyariGerekli &&
-          licenseInfo.kalanGun !== null && (
-            <div className="bg-amber-500/15 border-2 border-amber-500/40 text-amber-200 rounded-xl p-4 text-sm font-bold flex items-start gap-3">
-              <span className="text-xl shrink-0">⚠️</span>
-              <div>
-                <p>Lisans yenileme uyarısı</p>
-                <p className="text-xs font-semibold text-amber-100/90 mt-1">
-                  Yazılım lisansınızın bitmesine{" "}
-                  <strong>{licenseInfo.kalanGun} gün</strong> kaldı. Kesintisiz
-                  kullanım için sistem yöneticinizle iletişime geçin.
-                </p>
-              </div>
-            </div>
-          )}
-
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              💳 Yazılım Lisans Durumu
-            </h2>
-            <p className="text-slate-400 text-xs mt-1 leading-relaxed">
-              Yıllık kiralama lisansınızın kalan süresi ve aktif bitiş tarihi.
-            </p>
-          </div>
-
-          {!licenseInfo.loading && licenseInfo.kalanGun !== null && (
-            <div
-              className={`px-4 py-2 rounded-xl border text-sm font-black flex items-center gap-2 ${
-                licenseInfo.kalanGun <= 30
-                  ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
-                  : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-              }`}
-            >
-              <span>⏳ Kalan Süre:</span>
-              <span className="text-base">{licenseInfo.kalanGun} Gün</span>
-            </div>
-          )}
+        <div>
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            💳 Yazılım Lisans Durumu
+          </h2>
+          <p className="text-slate-400 text-xs mt-1 leading-relaxed">
+            Yıllık kiralama lisansınızın detayları. Özet bilgi sağ üst köşede
+            görünür.
+          </p>
         </div>
 
         <div className="bg-slate-950 border border-slate-800 p-4 rounded-xl flex flex-col sm:flex-row justify-between items-center text-xs text-slate-300 gap-2">
@@ -512,9 +634,19 @@ export default function ProfilPage() {
               ? "Yükleniyor..."
               : licenseInfo.bitisTarihi || "Tanımsız"}
           </span>
+          {!licenseInfo.loading && licenseInfo.kalanGun !== null && (
+            <span
+              className={`font-black ${
+                licenseInfo.kalanGun <= 30
+                  ? "text-amber-400"
+                  : "text-emerald-400"
+              }`}
+            >
+              Kalan: {licenseInfo.kalanGun} gün
+            </span>
+          )}
           <span className="text-slate-400 italic">
-            * Lisans uzatması ve teknik destek talepleri için sistem
-            yöneticinizle iletişime geçin.
+            * Lisans uzatması için sistem yöneticinizle iletişime geçin.
           </span>
         </div>
       </div>
