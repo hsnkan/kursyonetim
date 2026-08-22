@@ -1,7 +1,7 @@
 "use client";
 
-/** 2FA başarı animasyonu — toplam 3 sn, arka arkaya yuvarlanarak */
-export const GYMNAST_ANIM_MS = 3100;
+/** 2FA başarı animasyonu — ~2 sn, akıcı ardışık yuvarlanma */
+export const GYMNAST_ANIM_MS = 2100;
 
 export default function GymnastSuccessAnimation({ active }) {
   if (!active) return null;

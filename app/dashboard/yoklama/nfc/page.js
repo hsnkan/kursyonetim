@@ -6,6 +6,7 @@ import { normalizeMobileCardId } from "@/lib/mobileYoklama";
 import { useBranding } from "@/app/components/BrandingProvider";
 import PageHeader from "@/app/components/PageHeader";
 import { IconNfc } from "@/app/components/NavIcons";
+import KartKameraTarayici from "@/app/components/KartKameraTarayici";
 
 // 📅 YEREL (TR) TARİH YARDIMCISI (UTC Kaymasını Önler)
 const getLocalTodayDate = () => {
@@ -22,6 +23,7 @@ export default function NfcYoklamaPage() {
   const [mesaj, setMesaj] = useState({ tip: "", metin: "" });
   const [yoklamaGecmisi, setYoklamaGecmisi] = useState([]);
   const [gunlukLoading, setGunlukLoading] = useState(false);
+  const [kameraAcik, setKameraAcik] = useState(false);
 
   // 🎯 INPUT ODAK REF'İ (OTOMATİK ODAKLANMA İÇİN)
   const inputRef = useRef(null);
@@ -40,14 +42,14 @@ export default function NfcYoklamaPage() {
     odagiKoru();
 
     const handleClickGlobal = () => {
-      odagiKoru();
+      if (!kameraAcik) odagiKoru();
     };
 
     window.addEventListener("click", handleClickGlobal);
     return () => {
       window.removeEventListener("click", handleClickGlobal);
     };
-  }, [odagiKoru]);
+  }, [odagiKoru, kameraAcik]);
 
   // O GÜNÜN TÜM YOKLAMALARINI VERİTABANINDAN ÇEK
   const gunlukYoklamalariGetir = useCallback(async () => {
@@ -143,6 +145,15 @@ export default function NfcYoklamaPage() {
     }
   }, [yoklamaIsle, nfcIdTemizle]);
 
+  const kameraKodOkundu = useCallback(
+    (kartId) => {
+      const temiz = nfcIdTemizle(kartId);
+      setCardIdInput(temiz);
+      yoklamaIsle(temiz);
+    },
+    [nfcIdTemizle, yoklamaIsle],
+  );
+
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -194,9 +205,15 @@ export default function NfcYoklamaPage() {
 
       <PageHeader
         title="NFC Yoklama"
-        subtitle="Kart okutarak günlük yoklama alın. USB okuyucu sürekli bu alana odaklı kalır."
+        subtitle="USB okuyucu ile okutun veya isterseniz 📷 kamera ile kart kodunu tarayın."
         icon={<IconNfc className="w-6 h-6" />}
         badge="Canlı Terminal"
+      />
+
+      <KartKameraTarayici
+        acik={kameraAcik}
+        onKapat={() => setKameraAcik(false)}
+        onKodOkundu={kameraKodOkundu}
       />
 
       <div className="bg-white p-6 rounded-3xl border-2 border-slate-300 shadow-xl">
@@ -210,6 +227,29 @@ export default function NfcYoklamaPage() {
           autoFocus
           className="w-full text-center border-4 border-amber-400 focus:border-emerald-500 p-4 rounded-2xl text-xl font-black text-slate-900 bg-amber-50/30 focus:bg-emerald-50/30 outline-none shadow-inner transition-all"
         />
+
+        <div className="mt-4 flex flex-col items-center gap-2">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setKameraAcik(true);
+            }}
+            className="flex flex-col items-center gap-1.5 px-6 py-3 rounded-2xl border-2 border-slate-300 bg-slate-50 hover:bg-amber-50 hover:border-amber-400 transition-all cursor-pointer group"
+            aria-label="Kamera ile kart kodu tara"
+          >
+            <span className="text-4xl leading-none group-hover:scale-110 transition-transform">
+              📷
+            </span>
+            <span className="text-[11px] font-black uppercase tracking-wide text-slate-600 group-hover:text-amber-700">
+              Kamera ile Oku
+            </span>
+          </button>
+          <p className="text-[10px] text-slate-400 font-medium text-center max-w-xs">
+            İsteğe bağlı: kart üzerindeki QR, barkod veya numarayı kamera ile
+            okutabilirsiniz
+          </p>
+        </div>
 
         {mesaj.metin && (
           <div

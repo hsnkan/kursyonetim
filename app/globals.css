@@ -25,7 +25,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* 2FA parende — ekranın 1/6 genişliğinde, arka arkaya yuvarlanarak geçiş */
+/* 2FA parende — akıcı yuvarlanma, kısa süre */
 .gymnast-emoji {
   --gym-size: 16.666vw;
   font-size: var(--gym-size);
@@ -36,84 +36,41 @@ body {
   align-items: center;
   justify-content: center;
   transform-origin: center center;
+  backface-visibility: hidden;
 }
 
-@keyframes gymnast-girl-roll {
+@keyframes gymnast-roll-fluid {
   0% {
-    transform: translateX(calc(-1 * var(--gym-size))) translateY(0) rotate(0deg);
+    transform: translate3d(calc(-1 * var(--gym-size)), 0, 0) rotate(0deg);
     opacity: 0;
   }
-  4% {
+  5% {
     opacity: 1;
   }
-  18% {
-    transform: translateX(12vw) translateY(-6vh) rotate(252deg);
-  }
-  36% {
-    transform: translateX(32vw) translateY(0) rotate(504deg);
-  }
-  54% {
-    transform: translateX(52vw) translateY(-5vh) rotate(756deg);
-  }
-  72% {
-    transform: translateX(72vw) translateY(0) rotate(1008deg);
-  }
-  90% {
-    transform: translateX(92vw) translateY(-3vh) rotate(1260deg);
+  50% {
+    transform: translate3d(48vw, -4vh, 0) rotate(540deg);
   }
   100% {
-    transform: translateX(calc(100vw + var(--gym-size))) translateY(0)
-      rotate(1440deg);
-    opacity: 0.88;
-  }
-}
-
-@keyframes gymnast-boy-roll {
-  0% {
-    transform: translateX(calc(-1 * var(--gym-size))) translateY(0) rotate(0deg);
-    opacity: 0;
-  }
-  4% {
-    opacity: 1;
-  }
-  18% {
-    transform: translateX(12vw) translateY(-5vh) rotate(252deg);
-  }
-  36% {
-    transform: translateX(32vw) translateY(0) rotate(504deg);
-  }
-  54% {
-    transform: translateX(52vw) translateY(-4vh) rotate(756deg);
-  }
-  72% {
-    transform: translateX(72vw) translateY(0) rotate(1008deg);
-  }
-  90% {
-    transform: translateX(92vw) translateY(-2vh) rotate(1260deg);
-  }
-  100% {
-    transform: translateX(calc(100vw + var(--gym-size))) translateY(0)
-      rotate(1440deg);
-    opacity: 0.88;
+    transform: translate3d(calc(100vw + var(--gym-size)), 0, 0) rotate(1080deg);
+    opacity: 0.9;
   }
 }
 
 .gymnast-seq {
-  animation-duration: 2.28s;
-  animation-timing-function: cubic-bezier(0.36, 0, 0.66, 1);
+  animation-name: gymnast-roll-fluid;
+  animation-duration: 1.55s;
+  animation-timing-function: linear;
   animation-fill-mode: forwards;
-  filter: drop-shadow(0 16px 32px rgba(245, 158, 11, 0.55));
+  filter: drop-shadow(0 14px 24px rgba(245, 158, 11, 0.45));
   will-change: transform, opacity;
 }
 
 .gymnast-seq-1 {
-  animation-name: gymnast-girl-roll;
   z-index: 102;
 }
 
 .gymnast-seq-2 {
-  animation-name: gymnast-boy-roll;
-  animation-delay: 0.72s;
+  animation-delay: 0.45s;
   z-index: 101;
   opacity: 0;
 }
