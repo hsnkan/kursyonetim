@@ -21,11 +21,12 @@ function mixHex(hex, mix, weight) {
   return `rgb(${Math.round(a.r + (b.r - a.r) * w)}, ${Math.round(a.g + (b.g - a.g) * w)}, ${Math.round(a.b + (b.b - a.b) * w)})`;
 }
 
+/** Para kenarı — yalnızca silindir çevresi (kalınlık boyunca), yüzeyi kaplamaz */
 function CoinEdge({ size, thickness, accent }) {
-  const segments = 36;
+  const segments = 40;
   const radius = size / 2;
   const stripAngle = 360 / segments;
-  const stripWidth = (2 * Math.PI * radius) / segments + 0.6;
+  const stripWidth = (2 * Math.PI * radius) / segments + 0.5;
   const edgeDark = mixHex(accent, "#000000", 0.5);
   const edgeLight = mixHex(accent, "#ffffff", 0.28);
   const edgeMid = accent;
@@ -33,14 +34,16 @@ function CoinEdge({ size, thickness, accent }) {
   return Array.from({ length: segments }, (_, i) => (
     <div
       key={i}
-      className="absolute top-0 left-1/2 h-full pointer-events-none"
+      className="absolute left-1/2 top-1/2 pointer-events-none"
       style={{
         width: `${stripWidth}px`,
+        height: `${thickness}px`,
         marginLeft: `${-stripWidth / 2}px`,
+        marginTop: `${-thickness / 2}px`,
         transformOrigin: "center center",
-        transform: `rotateY(${stripAngle * i}deg) translateZ(${radius - 0.5}px)`,
-        background: `linear-gradient(180deg, ${edgeDark} 0%, ${edgeLight} 32%, ${edgeMid} 52%, ${edgeDark} 100%)`,
-        boxShadow: `inset 0 0 2px ${mixHex(accent, "#000000", 0.35)}`,
+        transform: `rotateY(${stripAngle * i}deg) translateZ(${radius}px) rotateX(90deg)`,
+        background: `linear-gradient(90deg, ${edgeDark} 0%, ${edgeLight} 40%, ${edgeMid} 55%, ${edgeDark} 100%)`,
+        boxShadow: `inset 0 0 1px ${mixHex(accent, "#000000", 0.35)}`,
       }}
     />
   ));
@@ -62,15 +65,14 @@ function CoinFace({
     <div
       className={`relative overflow-hidden rounded-full w-full h-full coin-face ${className}`}
       style={{
-        background:
-          "radial-gradient(circle at 32% 28%, rgba(255,255,255,0.22) 0%, transparent 42%), radial-gradient(circle at 72% 78%, rgba(0,0,0,0.55) 0%, transparent 48%), linear-gradient(145deg, #1a1208 0%, #0a0a0a 55%, #151515 100%)",
+        background: "transparent",
         boxShadow: `
-          inset 0 3px 10px rgba(255,255,255,0.28),
-          inset 0 -5px 14px rgba(0,0,0,0.65),
-          0 10px 28px rgba(0,0,0,0.5),
-          0 0 18px ${accent}44
+          inset 0 0 0 3px ${accent},
+          inset 0 2px 6px rgba(255,255,255,0.2),
+          inset 0 -3px 8px rgba(0,0,0,0.35),
+          0 6px 18px rgba(0,0,0,0.35),
+          0 0 12px ${accent}33
         `,
-        border: `3px solid ${accent}`,
       }}
     >
       {isDataUrl ? (
