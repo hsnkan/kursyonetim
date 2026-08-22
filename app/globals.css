@@ -93,6 +93,10 @@ body {
 }
 
 /* 3D madalyon — yüz halkası + dönüşte silindir kenarı */
+.logo-medallion-face {
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+}
+
 .coin-cylinder-edge {
   backface-visibility: visible;
   -webkit-backface-visibility: visible;

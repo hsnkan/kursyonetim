@@ -12,7 +12,7 @@ const LOGO_PROPS = {
   logoSrc: GELISTIRICI_BRANDING.logoUrl,
   alt: `${GELISTIRICI_BRANDING.firmaAdi} logo`,
   borderColor: GELISTIRICI_BRANDING.temaRengi,
-  fit: "contain",
+  faceMode: "medallion",
 };
 
 export function GelistiriciLogo({ size = 56, className = "" }) {

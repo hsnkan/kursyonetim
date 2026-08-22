@@ -48,6 +48,69 @@ function CoinCylinderEdge({ size, thickness, accent }) {
   ));
 }
 
+function MedallionFace({ logoSrc, alt, size, unoptimized }) {
+  const isDataUrl = logoSrc?.startsWith("data:");
+  const zoom = 1.22;
+
+  return (
+    <div className="relative w-full h-full rounded-full overflow-hidden logo-medallion-face">
+      <div
+        className="absolute inset-0"
+        style={{ transform: `scale(${zoom})` }}
+      >
+        {isDataUrl ? (
+          <img
+            src={logoSrc}
+            alt={alt}
+            className="w-full h-full object-cover object-center"
+          />
+        ) : (
+          <Image
+            src={logoSrc}
+            alt={alt}
+            fill
+            className="object-cover object-center"
+            sizes={`${size}px`}
+            priority
+            unoptimized={unoptimized}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CoinFaceContent({
+  faceMode,
+  logoSrc,
+  alt,
+  size,
+  borderColor,
+  unoptimized,
+  fit,
+}) {
+  if (faceMode === "medallion") {
+    return (
+      <MedallionFace
+        logoSrc={logoSrc}
+        alt={alt}
+        size={size}
+        unoptimized={unoptimized}
+      />
+    );
+  }
+
+  return (
+    <LogoWithRim3D
+      logoSrc={logoSrc}
+      alt={alt}
+      size={size}
+      borderColor={borderColor}
+      unoptimized={unoptimized}
+      fit={fit}
+    />
+  );
+}
 function LogoWithRim3D({
   logoSrc,
   alt,
@@ -128,6 +191,7 @@ export default function LogoCoin3D({
   borderColor = "#d4af37",
   unoptimized = false,
   fit = "cover",
+  faceMode = "rim",
   className = "",
   animate = true,
   showGlowRing = true,
@@ -136,8 +200,10 @@ export default function LogoCoin3D({
   const thickness = Math.max(5, Math.round(size * 0.1));
   const half = thickness / 2;
   const accent = borderColor || "#d4af37";
+  const isMedallion = faceMode === "medallion";
 
   const faceProps = {
+    faceMode,
     logoSrc,
     alt,
     size,
@@ -148,26 +214,28 @@ export default function LogoCoin3D({
 
   const coinBody = (
     <>
-      <CoinCylinderEdge size={size} thickness={thickness} accent={accent} />
+      {!isMedallion && (
+        <CoinCylinderEdge size={size} thickness={thickness} accent={accent} />
+      )}
       <div
         className="absolute inset-0"
         style={{
-          transform: `translateZ(${half}px)`,
+          transform: isMedallion ? undefined : `translateZ(${half}px)`,
           backfaceVisibility: "hidden",
           WebkitBackfaceVisibility: "hidden",
         }}
       >
-        <LogoWithRim3D {...faceProps} />
+        <CoinFaceContent {...faceProps} />
       </div>
       <div
         className="absolute inset-0"
         style={{
-          transform: `rotateY(180deg) translateZ(${half}px)`,
+          transform: isMedallion ? "rotateY(180deg)" : `rotateY(180deg) translateZ(${half}px)`,
           backfaceVisibility: "hidden",
           WebkitBackfaceVisibility: "hidden",
         }}
       >
-        <LogoWithRim3D {...faceProps} />
+        <CoinFaceContent {...faceProps} />
       </div>
     </>
   );
