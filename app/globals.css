@@ -92,49 +92,7 @@ body {
   animation: animate-shake 0.35s ease-in-out;
 }
 
-/* 3D madalyon — yüz halkası + dönüşte silindir kenarı */
-.logo-medallion-face {
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
-}
-
-.coin-cylinder-edge {
-  backface-visibility: visible;
-  -webkit-backface-visibility: visible;
-}
-
-.logo-rim-3d-outer {
-  background: conic-gradient(
-    from 225deg,
-    color-mix(in srgb, var(--coin-accent, #d4af37) 35%, #000),
-    color-mix(in srgb, var(--coin-accent, #d4af37) 100%, #fff 42%),
-    color-mix(in srgb, var(--coin-accent, #d4af37) 85%, #fff 25%),
-    var(--coin-accent, #d4af37),
-    color-mix(in srgb, var(--coin-accent, #d4af37) 50%, #000),
-    color-mix(in srgb, var(--coin-accent, #d4af37) 100%, #fff 35%),
-    color-mix(in srgb, var(--coin-accent, #d4af37) 35%, #000)
-  );
-  box-shadow:
-    0 12px 26px rgba(0, 0, 0, 0.5),
-    0 5px 14px color-mix(in srgb, var(--coin-accent, #d4af37) 40%, transparent),
-    inset 3px 4px 7px rgba(255, 255, 255, 0.48),
-    inset -4px -7px 12px rgba(0, 0, 0, 0.62),
-    inset 0 0 0 1px color-mix(in srgb, var(--coin-accent, #d4af37) 75%, #fff);
-}
-
-.logo-rim-3d-groove {
-  background: linear-gradient(145deg, #0a0a0a 0%, #151515 50%, #080808 100%);
-  box-shadow:
-    inset 0 3px 8px rgba(0, 0, 0, 0.85),
-    inset 0 -1px 2px rgba(255, 255, 255, 0.06);
-}
-
-.logo-rim-3d-face {
-  background: #06080f;
-  box-shadow:
-    inset 0 3px 10px rgba(0, 0, 0, 0.55),
-    inset 0 -1px 3px rgba(255, 255, 255, 0.06);
-}
-
+/* Logo — 2D düz yüz, duraklamalı Y ekseni dönüşü */
 @keyframes logo-coin-flip-pause {
   0%,
   36.36% {
