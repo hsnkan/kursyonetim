@@ -139,3 +139,65 @@ body {
     animation: none;
   }
 }
+
+/* NFC kamera — odak şeridi (ortada şeffaf, çevre flu) */
+#kart-kamera-view #qr-shaded-region,
+#kart-kamera-view #qr-box-container {
+  display: none !important;
+}
+
+#kart-kamera-view video {
+  object-fit: cover;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.kart-kamera-odak-blur {
+  position: absolute;
+  background: rgba(2, 6, 23, 0.48);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+
+.kart-kamera-odak-blur-top {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: calc(50% - var(--odak-serit-yarim, 14px));
+}
+
+.kart-kamera-odak-blur-bottom {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(50% - var(--odak-serit-yarim, 14px));
+}
+
+.kart-kamera-odak-blur-left {
+  left: 0;
+  width: 5%;
+  top: calc(50% - var(--odak-serit-yarim, 14px));
+  height: var(--odak-serit-yukseklik, 28px);
+}
+
+.kart-kamera-odak-blur-right {
+  right: 0;
+  width: 5%;
+  top: calc(50% - var(--odak-serit-yarim, 14px));
+  height: var(--odak-serit-yukseklik, 28px);
+}
+
+.kart-kamera-odak-serit {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  top: 50%;
+  transform: translateY(-50%);
+  height: var(--odak-serit-yukseklik, 28px);
+  border: 2px solid rgba(52, 211, 153, 0.95);
+  border-radius: 8px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.15) inset,
+    0 0 18px rgba(52, 211, 153, 0.35);
+  background: transparent;
+}

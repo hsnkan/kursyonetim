@@ -5,16 +5,17 @@ import { extractCardIdFromScan, metindenKartIdCikar, isIosDevice } from "@/lib/m
 import { kameraHataDetay, tekrarKameraIzniIste } from "@/lib/kameraIzniYardim";
 import KameraIzniRehberi from "@/app/components/KameraIzniRehberi";
 
-const OCR_INTERVAL_MS = 850;
-const OCR_INTERVAL_IOS_MS = 1000;
+const OCR_INTERVAL_MS = 700;
+const OCR_INTERVAL_IOS_MS = 750;
 const MIN_KART_UZUNLUK = 5;
 const OCR_ONAY_SAYISI = 2;
-const OCR_GUVEN_ESIK = 68;
+const OCR_GUVEN_ESIK = 55;
+const OCR_TEK_OKUMA_ESIK = 50;
 /** Tek satır kart numarası (~13pt yükseklik) */
 const SATIR_OKUMA_GENISLIK = 0.9;
-const SATIR_OKUMA_YUKSEKLIK_ORAN = 0.045;
-const SATIR_OKUMA_MIN_PX = 17;
-const SATIR_OKUMA_MAX_PX = 22;
+const SATIR_OKUMA_YUKSEKLIK_ORAN = 0.055;
+const SATIR_OKUMA_MIN_PX = 20;
+const SATIR_OKUMA_MAX_PX = 28;
 
 function satirTaramaOlculeri(genislikTaban, yukseklikTaban) {
   const width = Math.floor(genislikTaban * SATIR_OKUMA_GENISLIK);
@@ -80,6 +81,19 @@ async function kameraKaynagiSec(Html5Qrcode) {
 
 function satirOkumaKutusu(viewfinderWidth, viewfinderHeight) {
   return satirTaramaOlculeri(viewfinderWidth, viewfinderHeight);
+}
+
+/** Odak şeridi: ortada şeffaf, çevre flu + karartma */
+function KameraOdakOverlay() {
+  return (
+    <div className="kart-kamera-odak-overlay pointer-events-none absolute inset-0 z-10">
+      <div className="kart-kamera-odak-blur kart-kamera-odak-blur-top" />
+      <div className="kart-kamera-odak-blur kart-kamera-odak-blur-bottom" />
+      <div className="kart-kamera-odak-blur kart-kamera-odak-blur-left" />
+      <div className="kart-kamera-odak-blur kart-kamera-odak-blur-right" />
+      <div className="kart-kamera-odak-serit" aria-hidden="true" />
+    </div>
+  );
 }
 
 function taramaConfigOlustur() {
@@ -230,7 +244,8 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
       const onceki = ocrTekrarRef.current.get(kartId) || 0;
       const yeni = onceki + 1;
       ocrTekrarRef.current.set(kartId, yeni);
-      if (yeni >= OCR_ONAY_SAYISI) {
+      const gereken = guven >= OCR_TEK_OKUMA_ESIK ? 1 : OCR_ONAY_SAYISI;
+      if (yeni >= gereken) {
         basariliOku(kartId);
       }
     },
@@ -406,10 +421,10 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
         </div>
 
         <div className="p-4 space-y-3">
-          <div
-            id="kart-kamera-view"
-            className="w-full min-h-[260px] rounded-2xl overflow-hidden bg-slate-950"
-          />
+          <div className="relative w-full min-h-[260px] rounded-2xl overflow-hidden bg-slate-950">
+            <div id="kart-kamera-view" className="absolute inset-0 w-full h-full min-h-[260px]" />
+            {!taraniyor && !hata && <KameraOdakOverlay />}
+          </div>
 
           {taraniyor && (
             <p className="text-center text-xs font-bold text-slate-500">
@@ -421,7 +436,7 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
             <div className="space-y-2">
               <p className="text-center text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-2.5">
                 {mod === "numara"
-                  ? "Yalnızca kart numarasını ince satır hizasına getirin (~13 punto)."
+                  ? "Kart numarasını ortadaki şeffaf şeride hizalayın; dış alan flu."
                   : "Kamera hazırlanıyor..."}
               </p>
               {adayNumara && (
