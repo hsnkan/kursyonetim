@@ -6,7 +6,9 @@ import { kameraHataDetay, tekrarKameraIzniIste } from "@/lib/kameraIzniYardim";
 import KameraIzniRehberi from "@/app/components/KameraIzniRehberi";
 
 const OCR_INTERVAL_MS = 850;
+const OCR_INTERVAL_IOS_MS = 1100;
 const MIN_KART_UZUNLUK = 5;
+const OCR_ONAY_SAYISI = 2;
 
 const BARKOD_FORMATLARI = [
   "qr_code",
@@ -71,6 +73,7 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
   const ocrTimerRef = useRef(null);
   const barkodTimerRef = useRef(null);
   const ocrTekrarRef = useRef(new Map());
+  const ocrBusyRef = useRef(false);
   const onKapatRef = useRef(onKapat);
   const onKodOkunduRef = useRef(onKodOkundu);
 
@@ -146,14 +149,35 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
     return kok?.querySelector("video") || null;
   }, []);
 
-  const kareYakala = useCallback((videoEl) => {
+  const kareYakala = useCallback((videoEl, merkezKirp = false) => {
     if (!videoEl?.videoWidth || !videoEl?.videoHeight) return null;
+
+    const sw = videoEl.videoWidth;
+    const sh = videoEl.videoHeight;
     const canvas = document.createElement("canvas");
-    canvas.width = videoEl.videoWidth;
-    canvas.height = videoEl.videoHeight;
+
+    if (!merkezKirp) {
+      canvas.width = sw;
+      canvas.height = sh;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return null;
+      ctx.drawImage(videoEl, 0, 0);
+      return canvas;
+    }
+
+    const cropW = sw * 0.78;
+    const cropH = sh * 0.38;
+    const sx = (sw - cropW) / 2;
+    const sy = (sh - cropH) / 2;
+    const maxW = 720;
+    const scale = Math.min(1, maxW / cropW);
+
+    canvas.width = Math.floor(cropW * scale);
+    canvas.height = Math.floor(cropH * scale);
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
-    ctx.drawImage(videoEl, 0, 0);
+
+    ctx.drawImage(videoEl, sx, sy, cropW, cropH, 0, 0, canvas.width, canvas.height);
     return canvas;
   }, []);
 
@@ -162,7 +186,7 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
       const onceki = ocrTekrarRef.current.get(kartId) || 0;
       const yeni = onceki + 1;
       ocrTekrarRef.current.set(kartId, yeni);
-      if (yeni >= 2) {
+      if (yeni >= OCR_ONAY_SAYISI) {
         basariliOku(kartId);
       }
     },
@@ -203,22 +227,25 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
 
   const ocrBaslat = useCallback(async () => {
     try {
-      const { createWorker } = await import("tesseract.js");
+      const ios = isIosDevice();
+      const { createWorker, PSM } = await import("tesseract.js");
       const worker = await createWorker("eng", 1, {
         logger: () => {},
       });
       await worker.setParameters({
         tessedit_char_whitelist: "0123456789",
+        tessedit_pageseg_mode: PSM.SINGLE_LINE,
       });
       ocrWorkerRef.current = worker;
       setMod("numara");
 
       ocrTimerRef.current = setInterval(async () => {
-        if (islemRef.current || !ocrWorkerRef.current) return;
+        if (islemRef.current || !ocrWorkerRef.current || ocrBusyRef.current) return;
         const video = videoAl();
-        const canvas = kareYakala(video);
+        const canvas = kareYakala(video, true);
         if (!canvas) return;
 
+        ocrBusyRef.current = true;
         try {
           const {
             data: { text },
@@ -229,10 +256,17 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
           }
         } catch {
           // OCR turu atlandı
+        } finally {
+          ocrBusyRef.current = false;
         }
-      }, OCR_INTERVAL_MS);
+      }, ios ? OCR_INTERVAL_IOS_MS : OCR_INTERVAL_MS);
     } catch (err) {
       console.error("OCR başlatılamadı:", err);
+      if (isIosDevice()) {
+        setHata(
+          "Numara okuma başlatılamadı. Işığı artırın veya kart numarasını USB okuyucu alanına yazın.",
+        );
+      }
     }
   }, [kareYakala, ocrTekrarKaydet, videoAl]);
 
@@ -312,11 +346,9 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
         );
 
         setTaraniyor(false);
-        setMod("kod");
+        setMod("numara");
         await barkodDedektorBaslat();
-        if (!isIosDevice()) {
-          await ocrBaslat();
-        }
+        await ocrBaslat();
       } catch (err) {
         console.error("Kamera tarayıcı hatası:", err);
         setTaraniyor(false);
@@ -343,10 +375,10 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
         <div className="bg-slate-900 text-white px-5 py-4 flex justify-between items-center">
           <div>
             <h3 className="font-black text-sm uppercase tracking-wide">
-              📷 Kart Kodu Tara
+              📷 Kart Numarası Oku
             </h3>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              Kamera izinlerini açın, kodu kareye hizalayın
+              Kamera izinlerini açın, numarayı kareye hizalayın
             </p>
           </div>
           <button
@@ -376,7 +408,9 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
 
           {!taraniyor && !hata && (
             <p className="text-center text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-2.5">
-              Kart kodunu kare ortasına getirin. Okununca yoklama otomatik alınır.
+              {mod === "numara"
+                ? "Kart üzerindeki numarayı kare ortasına hizalayın. Aynı numara iki kez okununca yoklama alınır."
+                : "Kamera hazırlanıyor..."}
             </p>
           )}
 

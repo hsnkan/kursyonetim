@@ -234,13 +234,13 @@ export default function NfcYoklamaPage() {
               📷
             </span>
             <span className="text-[11px] font-black uppercase tracking-wide text-slate-600 group-hover:text-amber-700">
-              Kamera ile Oku
+              Numarayı Kamera ile Oku
             </span>
           </button>
           <p className="text-[11px] text-slate-600 font-semibold text-center max-w-sm leading-relaxed">
-            Kamera ile okumak için tarayıcıda kamera izinlerini aktif edin. İzin
-            isteği gelirse «İzin Ver» deyin. iPhone: Ayarlar → Safari → Kamera →
-            İzin Ver, ardından sayfayı yenileyin.
+            Kartta yalnızca numara varsa kamerayı kullanın. Önce tarayıcıda kamera
+            izinlerini aktif edin (iPhone: Ayarlar → Safari → Kamera → İzin Ver).
+            Numarayı ekrandaki kareye hizalayın; okununca yoklama otomatik alınır.
           </p>
         </div>
 
