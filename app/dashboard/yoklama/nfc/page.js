@@ -238,9 +238,10 @@ export default function NfcYoklamaPage() {
             </span>
           </button>
           <p className="text-[11px] text-slate-600 font-semibold text-center max-w-sm leading-relaxed">
-            Kartta yalnızca numara varsa kamerayı kullanın. Önce tarayıcıda kamera
-            izinlerini aktif edin (iPhone: Ayarlar → Safari → Kamera → İzin Ver).
-            Numarayı ekrandaki kareye hizalayın; okununca yoklama otomatik alınır.
+            Kartta yalnızca numara varsa kamerayı kullanın. Bilgisayar ekranından
+            okuma güvenilir değildir; test için numarayı üstteki alana yazıp Enter
+            basabilirsiniz. Kamera için izinleri açın (iPhone: Ayarlar → Safari →
+            Kamera → İzin Ver).
           </p>
         </div>
 

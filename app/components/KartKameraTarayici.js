@@ -6,9 +6,45 @@ import { kameraHataDetay, tekrarKameraIzniIste } from "@/lib/kameraIzniYardim";
 import KameraIzniRehberi from "@/app/components/KameraIzniRehberi";
 
 const OCR_INTERVAL_MS = 850;
-const OCR_INTERVAL_IOS_MS = 1100;
+const OCR_INTERVAL_IOS_MS = 1000;
 const MIN_KART_UZUNLUK = 5;
 const OCR_ONAY_SAYISI = 2;
+const OCR_GUVEN_ESIK = 68;
+
+function ocrIcinHazirla(canvas) {
+  const out = document.createElement("canvas");
+  out.width = canvas.width;
+  out.height = canvas.height;
+  const ctx = canvas.getContext("2d");
+  const octx = out.getContext("2d");
+  if (!ctx || !octx) return canvas;
+
+  const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const d = img.data;
+  let min = 255;
+  let max = 0;
+  const grays = new Float32Array(d.length / 4);
+
+  for (let i = 0, j = 0; i < d.length; i += 4, j++) {
+    const g = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    grays[j] = g;
+    if (g < min) min = g;
+    if (g > max) max = g;
+  }
+
+  const aralik = max - min || 1;
+  for (let i = 0, j = 0; i < d.length; i += 4, j++) {
+    const gerilim = ((grays[j] - min) / aralik) * 255;
+    const v = gerilim > 155 ? 255 : gerilim < 90 ? 0 : gerilim;
+    d[i] = v;
+    d[i + 1] = v;
+    d[i + 2] = v;
+    d[i + 3] = 255;
+  }
+
+  octx.putImageData(img, 0, 0);
+  return out;
+}
 
 const BARKOD_FORMATLARI = [
   "qr_code",
@@ -65,6 +101,7 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
   const [hataDetay, setHataDetay] = useState(null);
   const [taraniyor, setTaraniyor] = useState(false);
   const [mod, setMod] = useState("");
+  const [adayNumara, setAdayNumara] = useState("");
   const [taramaKey, setTaramaKey] = useState(0);
 
   const scannerRef = useRef(null);
@@ -88,6 +125,7 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
     setHataDetay(null);
     setTaraniyor(true);
     setMod("");
+    setAdayNumara("");
     setTaramaKey((k) => k + 1);
   }, []);
 
@@ -165,8 +203,8 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
       return canvas;
     }
 
-    const cropW = sw * 0.78;
-    const cropH = sh * 0.38;
+    const cropW = sw * 0.85;
+    const cropH = sh * 0.42;
     const sx = (sw - cropW) / 2;
     const sy = (sh - cropH) / 2;
     const maxW = 720;
@@ -182,7 +220,18 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
   }, []);
 
   const ocrTekrarKaydet = useCallback(
-    (kartId) => {
+    (kartId, guven = 0) => {
+      ocrTekrarRef.current.forEach((_, key) => {
+        if (key !== kartId) ocrTekrarRef.current.delete(key);
+      });
+
+      setAdayNumara(kartId);
+
+      if (guven >= OCR_GUVEN_ESIK) {
+        basariliOku(kartId);
+        return;
+      }
+
       const onceki = ocrTekrarRef.current.get(kartId) || 0;
       const yeni = onceki + 1;
       ocrTekrarRef.current.set(kartId, yeni);
@@ -247,12 +296,13 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
 
         ocrBusyRef.current = true;
         try {
+          const hazir = ocrIcinHazirla(canvas);
           const {
-            data: { text },
-          } = await ocrWorkerRef.current.recognize(canvas);
+            data: { text, confidence },
+          } = await ocrWorkerRef.current.recognize(hazir);
           const kartId = metindenKartIdCikar(text);
           if (kartId) {
-            ocrTekrarKaydet(kartId);
+            ocrTekrarKaydet(kartId, confidence || 0);
           }
         } catch {
           // OCR turu atlandı
@@ -277,6 +327,7 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
     ocrTekrarRef.current = new Map();
     setHata("");
     setHataDetay(null);
+    setAdayNumara("");
     setTaraniyor(true);
     setMod("");
 
@@ -407,11 +458,22 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
           )}
 
           {!taraniyor && !hata && (
-            <p className="text-center text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-2.5">
-              {mod === "numara"
-                ? "Kart üzerindeki numarayı kare ortasına hizalayın. Aynı numara iki kez okununca yoklama alınır."
-                : "Kamera hazırlanıyor..."}
-            </p>
+            <div className="space-y-2">
+              <p className="text-center text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-2.5">
+                {mod === "numara"
+                  ? "Fiziksel karttaki numarayı kare ortasına hizalayın. Bilgisayar ekranından okuma genelde zordur."
+                  : "Kamera hazırlanıyor..."}
+              </p>
+              {adayNumara && (
+                <button
+                  type="button"
+                  onClick={() => basariliOku(adayNumara)}
+                  className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm cursor-pointer"
+                >
+                  {adayNumara} — Bu numarayı kullan
+                </button>
+              )}
+            </div>
           )}
 
           {hata && (
