@@ -209,41 +209,38 @@ export default function NfcYoklamaPage() {
       />
 
       <div className="bg-white p-6 rounded-3xl border-2 border-slate-300 shadow-xl">
-        <input
-          ref={inputRef}
-          type="text"
-          value={cardIdInput}
-          onChange={(e) => setCardIdInput(nfcIdTemizle(e.target.value))}
-          onKeyDown={handleKeyDown}
-          placeholder="Kartı okutun..."
-          autoFocus
-          className="w-full text-center border-4 border-amber-400 focus:border-emerald-500 p-4 rounded-2xl text-xl font-black text-slate-900 bg-amber-50/30 focus:bg-emerald-50/30 outline-none shadow-inner transition-all"
-        />
-
-        <div className="mt-4 flex flex-col items-center gap-2">
+        <div className="flex gap-2 items-stretch">
+          <input
+            ref={inputRef}
+            type="text"
+            value={cardIdInput}
+            onChange={(e) => setCardIdInput(nfcIdTemizle(e.target.value))}
+            onKeyDown={handleKeyDown}
+            placeholder="Kartı okutun..."
+            autoFocus
+            className="flex-1 min-w-0 text-center border-4 border-amber-400 focus:border-emerald-500 p-4 rounded-2xl text-xl font-black text-slate-900 bg-amber-50/30 focus:bg-emerald-50/30 outline-none shadow-inner transition-all"
+          />
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               setKameraAcik(true);
             }}
-            className="flex flex-col items-center gap-1.5 px-6 py-3 rounded-2xl border-2 border-slate-300 bg-slate-50 hover:bg-amber-50 hover:border-amber-400 transition-all cursor-pointer group"
-            aria-label="Kamera ile kart kodu tara"
+            className="shrink-0 flex items-center justify-center w-14 sm:w-16 rounded-2xl border-2 border-slate-300 bg-slate-50 hover:bg-amber-50 hover:border-amber-400 transition-all cursor-pointer group"
+            aria-label="Kamera ile kart numarası oku"
+            title="Kamera ile oku"
           >
-            <span className="text-4xl leading-none group-hover:scale-110 transition-transform">
+            <span className="text-2xl sm:text-3xl leading-none group-hover:scale-105 transition-transform">
               📷
             </span>
-            <span className="text-[11px] font-black uppercase tracking-wide text-slate-600 group-hover:text-amber-700">
-              Numarayı Kamera ile Oku
-            </span>
           </button>
-          <p className="text-[11px] text-slate-600 font-semibold text-center max-w-sm leading-relaxed">
-            Kartta yalnızca numara varsa kamerayı kullanın. Bilgisayar ekranından
-            okuma güvenilir değildir; test için numarayı üstteki alana yazıp Enter
-            basabilirsiniz. Kamera için izinleri açın (iPhone: Ayarlar → Safari →
-            Kamera → İzin Ver).
-          </p>
         </div>
+
+        <p className="mt-3 text-[11px] text-slate-600 font-semibold text-center max-w-sm mx-auto leading-relaxed">
+          Kartta yalnızca numara varsa sağdaki kamera ile okuyun. Bilgisayar
+          ekranından okuma güvenilir değildir; test için numarayı alana yazıp Enter
+          basabilirsiniz. iPhone: Ayarlar → Safari → Kamera → İzin Ver.
+        </p>
 
         {mesaj.metin && (
           <div
