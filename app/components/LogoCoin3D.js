@@ -2,6 +2,50 @@
 
 import Image from "next/image";
 
+function parseHexColor(hex) {
+  if (!hex || typeof hex !== "string") return { r: 212, g: 175, b: 55 };
+  let h = hex.replace("#", "").trim();
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  if (h.length !== 6) return { r: 212, g: 175, b: 55 };
+  return {
+    r: parseInt(h.slice(0, 2), 16),
+    g: parseInt(h.slice(2, 4), 16),
+    b: parseInt(h.slice(4, 6), 16),
+  };
+}
+
+function mixHex(hex, mix, weight) {
+  const w = Math.min(1, Math.max(0, weight));
+  const a = parseHexColor(hex);
+  const b = parseHexColor(mix);
+  return `rgb(${Math.round(a.r + (b.r - a.r) * w)}, ${Math.round(a.g + (b.g - a.g) * w)}, ${Math.round(a.b + (b.b - a.b) * w)})`;
+}
+
+function CoinEdge({ size, thickness, accent }) {
+  const segments = 36;
+  const radius = size / 2;
+  const stripAngle = 360 / segments;
+  const stripWidth = (2 * Math.PI * radius) / segments + 0.6;
+  const edgeDark = mixHex(accent, "#000000", 0.5);
+  const edgeLight = mixHex(accent, "#ffffff", 0.28);
+  const edgeMid = accent;
+
+  return Array.from({ length: segments }, (_, i) => (
+    <div
+      key={i}
+      className="absolute top-0 left-1/2 h-full pointer-events-none"
+      style={{
+        width: `${stripWidth}px`,
+        marginLeft: `${-stripWidth / 2}px`,
+        transformOrigin: "center center",
+        transform: `rotateY(${stripAngle * i}deg) translateZ(${radius - 0.5}px)`,
+        background: `linear-gradient(180deg, ${edgeDark} 0%, ${edgeLight} 32%, ${edgeMid} 52%, ${edgeDark} 100%)`,
+        boxShadow: `inset 0 0 2px ${mixHex(accent, "#000000", 0.35)}`,
+      }}
+    />
+  ));
+}
+
 function CoinFace({
   logoSrc,
   alt,
@@ -51,7 +95,7 @@ function CoinFace({
 }
 
 /**
- * 3D metal para dönüşü — Y ekseni sürekli dönüş, çift yüz aynı logo.
+ * 3D metal para — kenar kalınlığı görünür, 2 sn bekleyip tek tur döner.
  */
 export default function LogoCoin3D({
   logoSrc = "/logo.png",
@@ -62,24 +106,24 @@ export default function LogoCoin3D({
   fit = "cover",
   className = "",
   animate = true,
-  speed = "slow",
   showGlowRing = true,
 }) {
-  const perspective = Math.round(size * 3);
-  const depth = Math.max(3, Math.round(size * 0.045));
-  const spinClass = speed === "slow" ? "logo-coin-spin-slow" : "logo-coin-spin";
+  const perspective = Math.round(size * 3.2);
+  const thickness = Math.max(6, Math.round(size * 0.14));
+  const half = thickness / 2;
   const accent = borderColor || "#d4af37";
 
-  if (!animate) {
-    return (
+  const coinBody = (
+    <>
+      <CoinEdge size={size} thickness={thickness} accent={accent} />
       <div
-        className={`relative shrink-0 ${className}`}
-        style={{ width: size, height: size }}
+        className="absolute inset-0"
+        style={{
+          transform: `translateZ(${half}px)`,
+          backfaceVisibility: "hidden",
+          WebkitBackfaceVisibility: "hidden",
+        }}
       >
-        <span
-          className="absolute inset-[-4px] rounded-full coin-metal-rim pointer-events-none"
-          style={{ "--coin-accent": accent }}
-        />
         <CoinFace
           logoSrc={logoSrc}
           alt={alt}
@@ -88,6 +132,46 @@ export default function LogoCoin3D({
           unoptimized={unoptimized}
           fit={fit}
         />
+      </div>
+      <div
+        className="absolute inset-0"
+        style={{
+          transform: `rotateY(180deg) translateZ(${half}px)`,
+          backfaceVisibility: "hidden",
+          WebkitBackfaceVisibility: "hidden",
+        }}
+      >
+        <CoinFace
+          logoSrc={logoSrc}
+          alt={alt}
+          size={size}
+          borderColor={borderColor}
+          unoptimized={unoptimized}
+          fit={fit}
+        />
+      </div>
+    </>
+  );
+
+  if (!animate) {
+    return (
+      <div
+        className={`relative shrink-0 ${className}`}
+        style={{ width: size, height: size, perspective: `${perspective}px` }}
+      >
+        <span
+          className="absolute inset-[-4px] rounded-full coin-metal-rim pointer-events-none"
+          style={{ "--coin-accent": accent }}
+        />
+        <div
+          className="relative w-full h-full"
+          style={{
+            transformStyle: "preserve-3d",
+            transform: "rotateX(12deg)",
+          }}
+        >
+          {coinBody}
+        </div>
       </div>
     );
   }
@@ -110,43 +194,13 @@ export default function LogoCoin3D({
       )}
 
       <div
-        className={`${spinClass} relative w-full h-full`}
-        style={{ transformStyle: "preserve-3d" }}
+        className="logo-coin-flip-pause relative w-full h-full"
+        style={{
+          transformStyle: "preserve-3d",
+          transform: "rotateX(12deg)",
+        }}
       >
-        <div
-          className="absolute inset-0"
-          style={{
-            transform: `translateZ(${depth}px)`,
-            backfaceVisibility: "hidden",
-            WebkitBackfaceVisibility: "hidden",
-          }}
-        >
-          <CoinFace
-            logoSrc={logoSrc}
-            alt={alt}
-            size={size}
-            borderColor={borderColor}
-            unoptimized={unoptimized}
-            fit={fit}
-          />
-        </div>
-        <div
-          className="absolute inset-0"
-          style={{
-            transform: `rotateY(180deg) translateZ(${depth}px)`,
-            backfaceVisibility: "hidden",
-            WebkitBackfaceVisibility: "hidden",
-          }}
-        >
-          <CoinFace
-            logoSrc={logoSrc}
-            alt={alt}
-            size={size}
-            borderColor={borderColor}
-            unoptimized={unoptimized}
-            fit={fit}
-          />
-        </div>
+        {coinBody}
       </div>
     </div>
   );

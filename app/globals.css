@@ -92,24 +92,27 @@ body {
   animation: animate-shake 0.35s ease-in-out;
 }
 
-/* 3D metal para dönüşü — logo animasyonları */
-@keyframes logo-coin-spin-y {
-  from {
-    transform: rotateY(0deg);
+/* 3D metal para — 2 sn bekle, dön, 2 sn bekle */
+@keyframes logo-coin-flip-pause {
+  0%,
+  36.36% {
+    transform: rotateX(12deg) rotateY(0deg);
   }
-  to {
-    transform: rotateY(360deg);
+  36.36% {
+    transform: rotateX(12deg) rotateY(0deg);
+    animation-timing-function: ease-in-out;
+  }
+  63.64% {
+    transform: rotateX(12deg) rotateY(360deg);
+  }
+  63.64%,
+  100% {
+    transform: rotateX(12deg) rotateY(360deg);
   }
 }
 
-.logo-coin-spin {
-  animation: logo-coin-spin-y 5.5s linear infinite;
-  transform-style: preserve-3d;
-  will-change: transform;
-}
-
-.logo-coin-spin-slow {
-  animation: logo-coin-spin-y 8s linear infinite;
+.logo-coin-flip-pause {
+  animation: logo-coin-flip-pause 5.5s infinite;
   transform-style: preserve-3d;
   will-change: transform;
 }
@@ -152,8 +155,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .logo-coin-spin,
-  .logo-coin-spin-slow,
+  .logo-coin-flip-pause,
   .logo-coin-glow-ring {
     animation: none;
   }
