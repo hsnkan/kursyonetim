@@ -1,71 +1,50 @@
 "use client";
 
 import Image from "next/image";
+import LogoCoin3D from "@/app/components/LogoCoin3D";
 import {
   GELISTIRICI_BRANDING,
   getGelistiriciMailUrl,
   getGelistiriciWhatsappUrl,
 } from "@/lib/gelistiriciBranding";
 
-function LogoFace({ size, className = "" }) {
-  return (
-    <div
-      className={`relative overflow-hidden rounded-full border-2 border-amber-500/60 shadow-lg shadow-amber-500/20 bg-slate-950 w-full h-full ${className}`}
-    >
-      <Image
-        src={GELISTIRICI_BRANDING.logoUrl}
-        alt={`${GELISTIRICI_BRANDING.firmaAdi} logo`}
-        fill
-        className="object-cover object-[center_18%] scale-[3.4]"
-        sizes={`${size}px`}
-      />
-    </div>
-  );
-}
+const LOGO_PROPS = {
+  logoSrc: GELISTIRICI_BRANDING.logoUrl,
+  alt: `${GELISTIRICI_BRANDING.firmaAdi} logo`,
+  borderColor: GELISTIRICI_BRANDING.temaRengi,
+  fit: "contain",
+  speed: "normal",
+};
 
 export function GelistiriciLogo({ size = 56, className = "" }) {
   return (
-    <div
-      className={`relative shrink-0 ${className}`}
-      style={{ width: size, height: size }}
-    >
-      <LogoFace size={size} />
-    </div>
+    <LogoCoin3D
+      {...LOGO_PROPS}
+      size={size}
+      className={className}
+      animate
+    />
   );
 }
 
-/** Profil: iletişim aktif vurgusu — çift yüzlü Y ekseni dönüşü */
+/** Profil: iletişim aktif vurgusu — metal para dönüşü */
 export function GelistiriciLogoCanli({ size = 64, className = "" }) {
   return (
     <div
       className={`relative shrink-0 ${className}`}
-      style={{ width: size, height: size, perspective: `${Math.round(size * 2.5)}px` }}
       title="Yazılım geliştirici iletişim kanalı aktif"
     >
-      <span className="absolute inset-0 rounded-full border-2 border-emerald-400/35 eagle-logo-pulse-ring" />
-      <span className="absolute inset-[-4px] rounded-full border border-cyan-400/25 eagle-logo-pulse-ring-delayed" />
-
-      <div
-        className="eagle-logo-flip relative w-full h-full"
-        style={{ transformStyle: "preserve-3d" }}
-      >
-        <div
-          className="absolute inset-0"
-          style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
-        >
-          <LogoFace size={size} />
-        </div>
-        <div
-          className="absolute inset-0"
-          style={{
-            backfaceVisibility: "hidden",
-            WebkitBackfaceVisibility: "hidden",
-            transform: "rotateY(180deg)",
-          }}
-        >
-          <LogoFace size={size} />
-        </div>
-      </div>
+      <span className="absolute inset-0 rounded-full border-2 border-emerald-400/35 logo-coin-glow-ring pointer-events-none" />
+      <span
+        className="absolute inset-[-4px] rounded-full border border-cyan-400/25 logo-coin-glow-ring pointer-events-none"
+        style={{ animationDelay: "1.5s" }}
+      />
+      <LogoCoin3D
+        {...LOGO_PROPS}
+        size={size}
+        showGlowRing={false}
+        animate
+      />
     </div>
   );
 }

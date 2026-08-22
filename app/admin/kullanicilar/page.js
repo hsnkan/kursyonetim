@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import SalonKurulumTab from "./SalonKurulumTab";
 import KurumTeslimTab from "./KurumTeslimTab";
-import GelistiriciLogo from "@/app/components/GelistiriciKartvizit";
+import { GelistiriciLogo } from "@/app/components/GelistiriciKartvizit";
 import { calculateRemainingLicenseDays } from "@/lib/license";
 
 export default function SuperAdminDashboard() {
