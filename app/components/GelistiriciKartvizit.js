@@ -7,20 +7,65 @@ import {
   getGelistiriciWhatsappUrl,
 } from "@/lib/gelistiriciBranding";
 
-export function GelistiriciLogo({ size = 56, className = "" }) {
+function LogoFace({ size, className = "" }) {
   return (
     <div
-      className={`relative overflow-hidden rounded-full border-2 border-amber-500/60 shadow-lg shadow-amber-500/10 bg-slate-950 shrink-0 ${className}`}
-      style={{ width: size, height: size }}
+      className={`relative overflow-hidden rounded-full border-2 border-amber-500/60 shadow-lg shadow-amber-500/20 bg-slate-950 w-full h-full ${className}`}
     >
       <Image
         src={GELISTIRICI_BRANDING.logoUrl}
         alt={`${GELISTIRICI_BRANDING.firmaAdi} logo`}
         fill
-        className="object-cover object-[center_28%] scale-[2.8]"
+        className="object-cover object-[center_18%] scale-[3.4]"
         sizes={`${size}px`}
-        priority
       />
+    </div>
+  );
+}
+
+export function GelistiriciLogo({ size = 56, className = "" }) {
+  return (
+    <div
+      className={`relative shrink-0 ${className}`}
+      style={{ width: size, height: size }}
+    >
+      <LogoFace size={size} />
+    </div>
+  );
+}
+
+/** Profil: iletişim aktif vurgusu — çift yüzlü Y ekseni dönüşü */
+export function GelistiriciLogoCanli({ size = 64, className = "" }) {
+  return (
+    <div
+      className={`relative shrink-0 ${className}`}
+      style={{ width: size, height: size, perspective: `${Math.round(size * 2.5)}px` }}
+      title="Yazılım geliştirici iletişim kanalı aktif"
+    >
+      <span className="absolute inset-0 rounded-full border-2 border-emerald-400/35 eagle-logo-pulse-ring" />
+      <span className="absolute inset-[-4px] rounded-full border border-cyan-400/25 eagle-logo-pulse-ring-delayed" />
+
+      <div
+        className="eagle-logo-flip relative w-full h-full"
+        style={{ transformStyle: "preserve-3d" }}
+      >
+        <div
+          className="absolute inset-0"
+          style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
+        >
+          <LogoFace size={size} />
+        </div>
+        <div
+          className="absolute inset-0"
+          style={{
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            transform: "rotateY(180deg)",
+          }}
+        >
+          <LogoFace size={size} />
+        </div>
+      </div>
     </div>
   );
 }
@@ -73,7 +118,11 @@ export default function GelistiriciKartvizit({
 
         <div className="flex-1 space-y-4 min-w-0">
           <div className="flex items-center gap-3">
-            <GelistiriciLogo size={64} />
+            {variant === "musteri" ? (
+              <GelistiriciLogoCanli size={72} />
+            ) : (
+              <GelistiriciLogo size={64} />
+            )}
             <div>
               <h2 className="text-xl font-black text-amber-400 uppercase tracking-wide">
                 {firmaAdi}
@@ -83,6 +132,13 @@ export default function GelistiriciKartvizit({
               </p>
             </div>
           </div>
+
+          {variant === "musteri" && (
+            <p className="text-[10px] font-bold text-emerald-400/90 flex items-center gap-1.5">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              İletişim kanalı açık — destek için ulaşabilirsiniz
+            </p>
+          )}
 
           <p className="text-xs text-slate-400 leading-relaxed">{aciklama}</p>
 

@@ -4,9 +4,7 @@ import { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import SalonKurulumTab from "./SalonKurulumTab";
 import KurumTeslimTab from "./KurumTeslimTab";
-import GelistiriciKartvizit, {
-  GelistiriciLogo,
-} from "@/app/components/GelistiriciKartvizit";
+import GelistiriciLogo from "@/app/components/GelistiriciKartvizit";
 import { calculateRemainingLicenseDays } from "@/lib/license";
 
 export default function SuperAdminDashboard() {
@@ -28,8 +26,8 @@ export default function SuperAdminDashboard() {
   const [users, setUsers] = useState([]);
   const [duzenlenecekUser, setDuzenlenecekUser] = useState(null);
 
-  const [yeniMusteriModal, setYeniMusteriModal] = useState(false);
-  const [yeniMusteriForm, setYeniMusteriForm] = useState({
+  const [yeniKullaniciModal, setYeniKullaniciModal] = useState(false);
+  const [yeniKullaniciForm, setYeniKullaniciForm] = useState({
     salonId: "",
     salonAdi: "",
     adSoyad: "",
@@ -122,7 +120,7 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  const handleYeniMusteriEkle = async (e) => {
+  const handleYeniKullaniciEkle = async (e) => {
     e.preventDefault();
     setYukleniyor(true);
 
@@ -131,7 +129,7 @@ export default function SuperAdminDashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...yeniMusteriForm,
+          ...yeniKullaniciForm,
           sifreDegistirmeZorunlu: true,
         }),
       });
@@ -139,10 +137,10 @@ export default function SuperAdminDashboard() {
       const data = await res.json();
       if (data.success) {
         bildirimGoster(
-          `🎉 '${yeniMusteriForm.salonAdi}' başarıyla oluşturuldu!`,
+          `✅ '${yeniKullaniciForm.kullaniciAdi || yeniKullaniciForm.adSoyad}' kullanıcısı oluşturuldu. Geçici şifre ile ilk girişte şifre değiştirmesi istenecek.`,
         );
-        setYeniMusteriModal(false);
-        setYeniMusteriForm({
+        setYeniKullaniciModal(false);
+        setYeniKullaniciForm({
           salonId: "",
           salonAdi: "",
           adSoyad: "",
@@ -155,7 +153,7 @@ export default function SuperAdminDashboard() {
         alert("✕ Hata: " + data.error);
       }
     } catch {
-      alert("Müşteri oluşturulurken sunucu hatası.");
+      alert("Kullanıcı oluşturulurken sunucu hatası.");
     } finally {
       setYukleniyor(false);
     }
@@ -560,10 +558,10 @@ export default function SuperAdminDashboard() {
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setYeniMusteriModal(true)}
+                onClick={() => setYeniKullaniciModal(true)}
                 className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-4 py-2.5 rounded-xl text-xs uppercase tracking-wider shadow-lg transition flex items-center gap-1.5 cursor-pointer"
               >
-                <span>➕</span> Yeni Müşteri Ekle
+                <span>➕</span> Yeni Kullanıcı Ekle
               </button>
 
               {/* 🚪 GÜVENLİ ÇIKIŞ BUTONU */}
@@ -634,8 +632,6 @@ export default function SuperAdminDashboard() {
             </button>
           </div>
         </div>
-
-        <GelistiriciKartvizit />
 
         {mesaj && (
           <div className="p-4 bg-emerald-500/20 border border-emerald-500 text-emerald-400 rounded-2xl text-sm font-bold animate-pulse">
@@ -1025,35 +1021,39 @@ export default function SuperAdminDashboard() {
           </div>
         )}
 
-        {/* ➕ YENİ MÜŞTERİ / SALON EKLEME MODALI */}
-        {yeniMusteriModal && (
+        {/* ➕ YENİ KULLANICI EKLEME MODALI */}
+        {yeniKullaniciModal && (
           <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-lg w-full space-y-4 shadow-2xl relative">
               <button
-                onClick={() => setYeniMusteriModal(false)}
+                onClick={() => setYeniKullaniciModal(false)}
                 className="absolute top-4 right-4 font-black text-xl text-slate-400 hover:text-white cursor-pointer"
               >
                 ✕
               </button>
 
               <h3 className="text-lg font-black text-emerald-400 flex items-center gap-2 border-b border-slate-800 pb-2">
-                ➕ Yeni Müşteri / Salon Hesabı Oluştur
+                ➕ Yeni Kullanıcı Ekle
               </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Mevcut kuruma bağlı kullanıcı hesabı oluşturun. Geçici şifre
+                verilir; kullanıcı ilk girişte kalıcı şifresini belirler.
+              </p>
 
-              <form onSubmit={handleYeniMusteriEkle} className="space-y-3">
+              <form onSubmit={handleYeniKullaniciEkle} className="space-y-3">
                 <div>
                   <label className="block text-[11px] font-black uppercase text-slate-400 mb-1">
                     Tanımlı Kurs / Salon Seç *
                   </label>
                   <select
                     required
-                    value={yeniMusteriForm.salonId}
+                    value={yeniKullaniciForm.salonId}
                     onChange={(e) => {
                       const secilen = salonlar.find(
                         (s) => s._id === e.target.value,
                       );
-                      setYeniMusteriForm({
-                        ...yeniMusteriForm,
+                      setYeniKullaniciForm({
+                        ...yeniKullaniciForm,
                         salonId: e.target.value,
                         salonAdi: secilen?.salonAdi || "",
                       });
@@ -1079,10 +1079,10 @@ export default function SuperAdminDashboard() {
                     type="text"
                     required
                     placeholder="Seçilen salondan otomatik dolar"
-                    value={yeniMusteriForm.salonAdi}
+                    value={yeniKullaniciForm.salonAdi}
                     onChange={(e) =>
-                      setYeniMusteriForm({
-                        ...yeniMusteriForm,
+                      setYeniKullaniciForm({
+                        ...yeniKullaniciForm,
                         salonAdi: e.target.value,
                       })
                     }
@@ -1099,10 +1099,10 @@ export default function SuperAdminDashboard() {
                       type="text"
                       required
                       placeholder="ahmet.yilmaz"
-                      value={yeniMusteriForm.kullaniciAdi}
+                      value={yeniKullaniciForm.kullaniciAdi}
                       onChange={(e) =>
-                        setYeniMusteriForm({
-                          ...yeniMusteriForm,
+                        setYeniKullaniciForm({
+                          ...yeniKullaniciForm,
                           kullaniciAdi: e.target.value,
                         })
                       }
@@ -1118,10 +1118,10 @@ export default function SuperAdminDashboard() {
                       type="email"
                       required
                       placeholder="salon@balans.com"
-                      value={yeniMusteriForm.email}
+                      value={yeniKullaniciForm.email}
                       onChange={(e) =>
-                        setYeniMusteriForm({
-                          ...yeniMusteriForm,
+                        setYeniKullaniciForm({
+                          ...yeniKullaniciForm,
                           email: e.target.value,
                         })
                       }
@@ -1139,10 +1139,10 @@ export default function SuperAdminDashboard() {
                       type="text"
                       required
                       placeholder="Ahmet Yılmaz"
-                      value={yeniMusteriForm.adSoyad}
+                      value={yeniKullaniciForm.adSoyad}
                       onChange={(e) =>
-                        setYeniMusteriForm({
-                          ...yeniMusteriForm,
+                        setYeniKullaniciForm({
+                          ...yeniKullaniciForm,
                           adSoyad: e.target.value,
                         })
                       }
@@ -1154,17 +1154,17 @@ export default function SuperAdminDashboard() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-black uppercase text-slate-400 mb-1">
-                      Geçici Şifre
+                      Geçici Şifre (İlk Giriş)
                     </label>
                     <input
                       type="text"
                       required
                       minLength={6}
                       placeholder="Balans2026!"
-                      value={yeniMusteriForm.sabitSifre}
+                      value={yeniKullaniciForm.sabitSifre}
                       onChange={(e) =>
-                        setYeniMusteriForm({
-                          ...yeniMusteriForm,
+                        setYeniKullaniciForm({
+                          ...yeniKullaniciForm,
                           sabitSifre: e.target.value,
                         })
                       }
@@ -1180,14 +1180,14 @@ export default function SuperAdminDashboard() {
                 </div>
 
                 <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-[11px] text-amber-300 font-medium">
-                  🔒 **Not:** Yeni kullanıcı oluşturulduğunda ilk girişte
-                  zorunlu olarak şifresini değiştirmesi istenecektir.
+                  🔒 Kullanıcıya geçici şifreyi güvenli kanaldan iletin. İlk
+                  girişte kalıcı şifre belirlemesi zorunludur.
                 </div>
 
                 <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
                   <button
                     type="button"
-                    onClick={() => setYeniMusteriModal(false)}
+                    onClick={() => setYeniKullaniciModal(false)}
                     className="px-4 py-2 bg-slate-800 text-slate-300 font-bold rounded-xl text-xs"
                   >
                     İptal
@@ -1197,7 +1197,7 @@ export default function SuperAdminDashboard() {
                     disabled={yukleniyor}
                     className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs shadow-md cursor-pointer"
                   >
-                    {yukleniyor ? "Oluşturuluyor..." : "Müşteriyi Kaydet"}
+                    {yukleniyor ? "Oluşturuluyor..." : "Kullanıcıyı Oluştur"}
                   </button>
                 </div>
               </form>

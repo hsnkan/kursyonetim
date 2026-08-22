@@ -91,3 +91,54 @@ body {
 .animate-shake {
   animation: animate-shake 0.35s ease-in-out;
 }
+
+/* Eagle logo — profil iletişim dönüşü (ön/arka aynı kuş) */
+@keyframes eagle-logo-y-spin {
+  0%,
+  72% {
+    transform: rotateY(0deg);
+  }
+  86% {
+    transform: rotateY(180deg);
+  }
+  100% {
+    transform: rotateY(360deg);
+  }
+}
+
+.eagle-logo-flip {
+  animation: eagle-logo-y-spin 6s ease-in-out infinite;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+@keyframes eagle-logo-ring-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.08);
+  }
+}
+
+.eagle-logo-pulse-ring {
+  animation: eagle-logo-ring-pulse 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.eagle-logo-pulse-ring-delayed {
+  animation: eagle-logo-ring-pulse 2.4s ease-in-out infinite;
+  animation-delay: 1.2s;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eagle-logo-flip,
+  .eagle-logo-pulse-ring,
+  .eagle-logo-pulse-ring-delayed {
+    animation: none;
+  }
+}
