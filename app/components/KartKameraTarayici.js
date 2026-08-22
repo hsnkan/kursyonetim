@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { extractCardIdFromScan, metindenKartIdCikar } from "@/lib/mobileYoklama";
+import { kameraHataDetay } from "@/lib/kameraIzniYardim";
+import KameraIzniRehberi from "@/app/components/KameraIzniRehberi";
 
 const OCR_INTERVAL_MS = 850;
 const MIN_KART_UZUNLUK = 5;
@@ -21,8 +23,10 @@ const BARKOD_FORMATLARI = [
 
 export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
   const [hata, setHata] = useState("");
+  const [hataDetay, setHataDetay] = useState(null);
   const [taraniyor, setTaraniyor] = useState(false);
   const [mod, setMod] = useState("");
+  const [taramaKey, setTaramaKey] = useState(0);
 
   const scannerRef = useRef(null);
   const islemRef = useRef(false);
@@ -32,6 +36,20 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
   const ocrTekrarRef = useRef(new Map());
   const onKapatRef = useRef(onKapat);
   const onKodOkunduRef = useRef(onKodOkundu);
+
+  const hataGoster = useCallback((err) => {
+    const detay = kameraHataDetay(err);
+    setHata(detay.mesaj);
+    setHataDetay(detay);
+  }, []);
+
+  const taramayiYenidenBaslat = useCallback(() => {
+    setHata("");
+    setHataDetay(null);
+    setTaraniyor(true);
+    setMod("");
+    setTaramaKey((k) => k + 1);
+  }, []);
 
   useEffect(() => {
     onKapatRef.current = onKapat;
@@ -187,12 +205,19 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
     islemRef.current = false;
     ocrTekrarRef.current = new Map();
     setHata("");
+    setHataDetay(null);
     setTaraniyor(true);
     setMod("");
 
     let iptal = false;
 
     const baslat = async () => {
+      if (typeof window !== "undefined" && !window.isSecureContext) {
+        setTaraniyor(false);
+        hataGoster(null);
+        return;
+      }
+
       try {
         const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import(
           "html5-qrcode"
@@ -252,9 +277,7 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
       } catch (err) {
         console.error("Kamera tarayıcı hatası:", err);
         setTaraniyor(false);
-        setHata(
-          "Kamera açılamadı. Tarayıcı kamera iznini kontrol edin (HTTPS gerekir).",
-        );
+        hataGoster(err);
       }
     };
 
@@ -264,7 +287,7 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
       iptal = true;
       temizleKaynaklar();
     };
-  }, [acik, basariliOku, barkodDedektorBaslat, ocrBaslat, temizleKaynaklar]);
+  }, [acik, taramaKey, basariliOku, barkodDedektorBaslat, hataGoster, ocrBaslat, temizleKaynaklar]);
 
   if (!acik) return null;
 
@@ -317,9 +340,18 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
           )}
 
           {hata && (
-            <p className="text-center text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl p-3">
-              {hata}
-            </p>
+            <div className="space-y-3">
+              <p className="text-center text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl p-3">
+                {hata}
+              </p>
+
+              {hataDetay?.izinRehberi && (
+                <KameraIzniRehberi
+                  httpsSorunu={Boolean(hataDetay.httpsSorunu)}
+                  onTekrarDene={taramayiYenidenBaslat}
+                />
+              )}
+            </div>
           )}
         </div>
       </div>
