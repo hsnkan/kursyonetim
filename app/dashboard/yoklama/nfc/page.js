@@ -79,8 +79,7 @@ export default function NfcYoklamaPage() {
   // 🎴 KART OKUNDUĞUNDA YOKLAMA İŞLEME FONKSİYONU (useEffect'lerden Önce Tanımlandı)
   const yoklamaIsle = useCallback(
     async (okunanId) => {
-      const hamKartId = okunanId || cardIdInput;
-      const kartId = nfcIdTemizle(hamKartId);
+      const kartId = nfcIdTemizle(okunanId);
 
       if (!kartId) return;
 
@@ -128,7 +127,7 @@ export default function NfcYoklamaPage() {
         setTimeout(odagiKoru, 100);
       }
     },
-    [cardIdInput, gunlukYoklamalariGetir, nfcIdTemizle, odagiKoru],
+    [gunlukYoklamalariGetir, nfcIdTemizle, odagiKoru],
   );
 
   // URL PARAMETRESİ İLE GELEN KART ID (iPhone Kestirmeler / QR link)
@@ -144,6 +143,8 @@ export default function NfcYoklamaPage() {
       yoklamaIsle(temizUrlCardId);
     }
   }, [yoklamaIsle, nfcIdTemizle]);
+
+  const kameraKapat = useCallback(() => setKameraAcik(false), []);
 
   const kameraKodOkundu = useCallback(
     (kartId) => {
@@ -212,7 +213,7 @@ export default function NfcYoklamaPage() {
 
       <KartKameraTarayici
         acik={kameraAcik}
-        onKapat={() => setKameraAcik(false)}
+        onKapat={kameraKapat}
         onKodOkundu={kameraKodOkundu}
       />
 

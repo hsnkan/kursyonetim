@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import PageHeader from "@/app/components/PageHeader";
 import { IconProfile } from "@/app/components/NavIcons";
+import PasswordInput from "@/app/components/PasswordInput";
 import GymnastSuccessAnimation, {
   GYMNAST_ANIM_MS,
 } from "@/app/components/GymnastSuccessAnimation";
@@ -9,6 +10,20 @@ import GymnastSuccessAnimation, {
 export default function ProfilPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  const [hesap, setHesap] = useState({
+    email: "",
+    kurtarmaEmail: "",
+    sifreDegistirmeZorunlu: false,
+    loading: true,
+  });
+  const [hesapForm, setHesapForm] = useState({
+    email: "",
+    kurtarmaEmail: "",
+    mevcutSifre: "",
+    yeniSifre: "",
+    yeniSifreTekrar: "",
+  });
 
   // Lisans Bilgileri State'leri
   const [licenseInfo, setLicenseInfo] = useState({
@@ -45,6 +60,103 @@ export default function ProfilPage() {
     };
     fetchLicense();
   }, []);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch("/api/user/profile");
+        const data = await res.json();
+        if (data.success) {
+          setHesap({
+            email: data.user.email || "",
+            kurtarmaEmail: data.user.kurtarmaEmail || "",
+            sifreDegistirmeZorunlu: Boolean(data.user.sifreDegistirmeZorunlu),
+            loading: false,
+          });
+          setHesapForm((prev) => ({
+            ...prev,
+            email: data.user.email || "",
+            kurtarmaEmail: data.user.kurtarmaEmail || "",
+          }));
+        } else {
+          setHesap((prev) => ({ ...prev, loading: false }));
+        }
+      } catch {
+        setHesap((prev) => ({ ...prev, loading: false }));
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleHesapKaydet = async (e) => {
+    e.preventDefault();
+    setMessage("");
+    setLoading(true);
+
+    const emailDegisti =
+      hesapForm.email.trim().toLowerCase() !== hesap.email.toLowerCase();
+    const sifreDegisiyor = hesapForm.yeniSifre.length > 0;
+
+    if (sifreDegisiyor) {
+      if (hesapForm.yeniSifre.length < 6) {
+        setMessage("❌ Yeni şifre en az 6 karakter olmalıdır.");
+        setLoading(false);
+        return;
+      }
+      if (hesapForm.yeniSifre !== hesapForm.yeniSifreTekrar) {
+        setMessage("❌ Yeni şifreler birbiriyle eşleşmiyor.");
+        setLoading(false);
+        return;
+      }
+    }
+
+    if ((emailDegisti || sifreDegisiyor) && !hesapForm.mevcutSifre) {
+      setMessage(
+        "❌ E-posta veya şifre değiştirmek için mevcut şifrenizi girmelisiniz.",
+      );
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/user/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: hesapForm.email.trim(),
+          kurtarmaEmail: hesapForm.kurtarmaEmail.trim(),
+          mevcutSifre: hesapForm.mevcutSifre || undefined,
+          yeniSifre: sifreDegisiyor ? hesapForm.yeniSifre : undefined,
+        }),
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        setMessage("❌ " + (data.error || "Güncelleme başarısız."));
+        return;
+      }
+
+      setHesap({
+        email: data.user.email,
+        kurtarmaEmail: data.user.kurtarmaEmail || "",
+        sifreDegistirmeZorunlu: Boolean(data.user.sifreDegistirmeZorunlu),
+        loading: false,
+      });
+      setHesapForm((prev) => ({
+        ...prev,
+        email: data.user.email,
+        kurtarmaEmail: data.user.kurtarmaEmail || "",
+        mevcutSifre: "",
+        yeniSifre: "",
+        yeniSifreTekrar: "",
+      }));
+      setMessage("✅ " + (data.message || "Hesap bilgileriniz güncellendi."));
+    } catch {
+      setMessage("❌ Bağlantı hatası oluştu.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // 🛠️ 3 Saatlik Teknik Destek İzni Verme
   const handleSupportGrant = async () => {
@@ -127,6 +239,134 @@ export default function ProfilPage() {
           {message}
         </div>
       )}
+
+      {/* 👤 HESAP AYARLARI */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+        <div>
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            👤 Hesap ve Giriş Bilgileri
+          </h2>
+          <p className="text-slate-400 text-xs mt-1 leading-relaxed max-w-xl">
+            Giriş e-postanız (kullanıcı adınız), kurtarma e-postanız ve şifrenizi
+            buradan yönetin. Şifre sıfırlama bağlantısı{" "}
+            <strong>kurtarma e-postanıza</strong> gider; tanımlı değilse giriş
+            e-postanıza gönderilir.
+          </p>
+        </div>
+
+        {hesap.sifreDegistirmeZorunlu && (
+          <div className="bg-amber-500/15 border border-amber-500/30 text-amber-200 rounded-xl p-3 text-xs font-bold">
+            ⚠️ Geçici şifre ile giriş yaptınız. Lütfen aşağıdan kalıcı bir şifre
+            belirleyin.
+          </div>
+        )}
+
+        {hesap.loading ? (
+          <p className="text-xs text-slate-500">Hesap bilgileri yükleniyor...</p>
+        ) : (
+          <form onSubmit={handleHesapKaydet} className="space-y-4">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-[11px] font-black uppercase text-slate-400 block mb-1">
+                  Giriş E-Postası (Kullanıcı Adı)
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={hesapForm.email}
+                  onChange={(e) =>
+                    setHesapForm({ ...hesapForm, email: e.target.value })
+                  }
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400 font-mono"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-black uppercase text-slate-400 block mb-1">
+                  Kurtarma E-Postası
+                </label>
+                <input
+                  type="email"
+                  value={hesapForm.kurtarmaEmail}
+                  onChange={(e) =>
+                    setHesapForm({
+                      ...hesapForm,
+                      kurtarmaEmail: e.target.value,
+                    })
+                  }
+                  placeholder="ornek@domain.com"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-sky-400 font-mono"
+                />
+              </div>
+            </div>
+
+            {!hesapForm.kurtarmaEmail && (
+              <p className="text-[10px] text-amber-400/90 font-semibold">
+                Kurtarma e-postası tanımlı değil — şifre sıfırlama bağlantısı giriş
+                e-postanıza gider.
+              </p>
+            )}
+
+            <div className="border-t border-slate-800 pt-4 space-y-3">
+              <p className="text-xs font-bold text-slate-300">Şifre Değiştir</p>
+              <div>
+                <label className="text-[11px] font-black uppercase text-slate-400 block mb-1">
+                  Mevcut Şifre
+                </label>
+                <PasswordInput
+                  value={hesapForm.mevcutSifre}
+                  onChange={(e) =>
+                    setHesapForm({
+                      ...hesapForm,
+                      mevcutSifre: e.target.value,
+                    })
+                  }
+                  placeholder="Değişiklik için gerekli"
+                  inputClassName="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400 font-mono"
+                />
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[11px] font-black uppercase text-slate-400 block mb-1">
+                    Yeni Şifre
+                  </label>
+                  <PasswordInput
+                    value={hesapForm.yeniSifre}
+                    onChange={(e) =>
+                      setHesapForm({ ...hesapForm, yeniSifre: e.target.value })
+                    }
+                    placeholder="En az 6 karakter"
+                    inputClassName="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-black uppercase text-slate-400 block mb-1">
+                    Yeni Şifre (Tekrar)
+                  </label>
+                  <PasswordInput
+                    value={hesapForm.yeniSifreTekrar}
+                    onChange={(e) =>
+                      setHesapForm({
+                        ...hesapForm,
+                        yeniSifreTekrar: e.target.value,
+                      })
+                    }
+                    placeholder="Tekrar girin"
+                    inputClassName="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400 font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-5 py-2.5 rounded-xl text-xs transition cursor-pointer disabled:opacity-50"
+            >
+              {loading ? "Kaydediliyor..." : "Hesap Bilgilerini Kaydet"}
+            </button>
+          </form>
+        )}
+      </div>
 
       {/* 💳 1. KART: YILLIK LİSANS VE KULLANIM SÜRESİ DURUMU */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">

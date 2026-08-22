@@ -54,7 +54,7 @@ export default function SifremiUnuttumPage() {
 
       setMesaj({
         tip: "basari",
-        metin:
+        metin: data.message ||
           "📧 Sıfırlama bağlantısı e-posta adresinize gönderildi! Lütfen gelen kutunuzu kontrol edin.",
       });
     } catch {
@@ -108,7 +108,9 @@ export default function SifremiUnuttumPage() {
             🔑 Şifremi Unuttum
           </h1>
           <p className="text-xs text-slate-400">
-            Hesabınıza yeniden erişmek için aşağıdaki yöntemlerden birini seçin
+            Hesabınıza yeniden erişmek için aşağıdaki yöntemlerden birini seçin.
+            E-posta bağlantısı, profilde tanımlı{" "}
+            <strong>kurtarma e-postanıza</strong> gider.
           </p>
         </div>
 
@@ -162,7 +164,7 @@ export default function SifremiUnuttumPage() {
           <form onSubmit={handleEmailReset} className="space-y-4">
             <div>
               <label className="text-xs font-bold text-slate-300 block mb-1">
-                Kayıtlı E-Posta Adresiniz
+                Giriş E-Postanız veya Kurtarma E-Postanız
               </label>
               <input
                 type="email"

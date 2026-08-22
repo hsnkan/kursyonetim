@@ -360,7 +360,8 @@ export default function SalonKurulumTab({ bildirimGoster }) {
             </h3>
             <p className="text-[11px] text-slate-500">
               Teslim öncesi müşteri ve teknik iletişim bilgilerini girin. Lisans
-              uyarısı ve şifre sıfırlama bu adreslere gider.
+              uyarısı bu adreslere gider. Kullanıcı şifre sıfırlama e-postasını
+              kendi profilinden tanımlar.
             </p>
             <div>
               <label className="text-[11px] font-black text-slate-400 uppercase">

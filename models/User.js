@@ -15,6 +15,13 @@ const UserSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
+    /** Şifre sıfırlama bağlantısının gideceği adres (kullanıcı profilden tanımlar) */
+    kurtarmaEmail: {
+      type: String,
+      default: "",
+      lowercase: true,
+      trim: true,
+    },
     sifreHash: {
       type: String,
       required: [true, "Şifre alanı zorunludur."],

@@ -3,11 +3,23 @@ import dbConnect from "@/lib/db";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { Resend } from "resend";
+import { getBrandingBySalonId } from "@/lib/branding";
+import { sendPasswordResetEmail } from "@/lib/mail";
 
-const resend = process.env.RESEND_API_KEY
-  ? new Resend(process.env.RESEND_API_KEY)
-  : null;
+function normalizeEmail(value) {
+  return String(value || "")
+    .toLowerCase()
+    .trim();
+}
+
+async function findUserByLoginOrRecovery(email) {
+  const clean = normalizeEmail(email);
+  if (!clean) return null;
+  return User.findOne({
+    durum: "aktif",
+    $or: [{ email: clean }, { kurtarmaEmail: clean }],
+  });
+}
 
 export async function POST(request) {
   try {
@@ -15,7 +27,6 @@ export async function POST(request) {
     const body = await request.json();
     const { islem, email, token, gizliCevap, yeniSifre } = body;
 
-    // 🔗 1. YÖNTEM A: E-POSTA BAĞLANTISI TIKLANDIĞINDA YENİ ŞİFREYİ KAYDETME
     if (islem === "token_sifre_guncelle") {
       if (!token || !yeniSifre) {
         return NextResponse.json(
@@ -74,9 +85,8 @@ export async function POST(request) {
       );
     }
 
-    const cleanEmail = email.toLowerCase().trim();
+    const cleanEmail = normalizeEmail(email);
 
-    // 🔑 2. YÖNTEM: İLK GİRİŞTE GEÇİCİ ŞİFRE GÜNCELLEME (YENİ EKLENDİ)
     if (islem === "sifre_guncelle") {
       if (!yeniSifre || yeniSifre.length < 6) {
         return NextResponse.json(
@@ -94,8 +104,19 @@ export async function POST(request) {
         );
       }
 
+      if (!user.sifreDegistirmeZorunlu) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "Bu ekran yalnızca ilk giriş / geçici şifre değişimi içindir. Profil sayfasından veya şifremi unuttum ile güncelleyin.",
+          },
+          { status: 403 },
+        );
+      }
+
       user.sifreHash = await bcrypt.hash(yeniSifre, 10);
-      user.sifreDegistirmeZorunlu = false; // ✅ İlk giriş şifre değiştirme zorunluluğunu kaldırıyoruz
+      user.sifreDegistirmeZorunlu = false;
       await user.save();
 
       return NextResponse.json({
@@ -106,9 +127,8 @@ export async function POST(request) {
       });
     }
 
-    // 📧 3. YÖNTEM: E-POSTA İLE SIFIRLAMA LİNKİ GÖNDERME (RESEND API)
     if (islem === "email_link_gonder") {
-      const user = await User.findOne({ email: cleanEmail, durum: "aktif" });
+      const user = await findUserByLoginOrRecovery(cleanEmail);
 
       if (!user) {
         return NextResponse.json({
@@ -117,6 +137,8 @@ export async function POST(request) {
             "Eğer bu e-posta adresi sistemde kayıtlıysa sıfırlama bağlantısı gönderilmiştir.",
         });
       }
+
+      const hedefEmail = user.kurtarmaEmail || user.email;
 
       const resetToken = crypto.randomBytes(32).toString("hex");
       const hashedToken = crypto
@@ -128,35 +150,46 @@ export async function POST(request) {
       user.resetPasswordExpires = Date.now() + 60 * 60 * 1000;
       await user.save();
 
-      const siteUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+      const siteUrl =
+        process.env.NEXTAUTH_URL ||
+        process.env.NEXT_PUBLIC_SITE_URL ||
+        "http://localhost:3000";
       const resetUrl = `${siteUrl}/auth/yeni-sifre?token=${resetToken}&email=${encodeURIComponent(user.email)}`;
 
-      if (resend) {
-        await resend.emails.send({
-          from: "Balans Sistem <sistem@balansakademi.com>",
-          to: user.email,
-          subject: "🔑 Şifre Sıfırlama Talebi - Balans",
-          html: `
-            <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-              <h2>Şifre Sıfırlama Talebi</h2>
-              <p>Merhaba <strong>${user.adSoyad || user.salonAdi}</strong>,</p>
-              <p>Hesabınızın şifresini sıfırlamak için aşağıdaki butona tıklayın:</p>
-              <a href="${resetUrl}" style="background-color: #f59e0b; color: #000; font-weight: bold; padding: 12px 20px; text-decoration: none; border-radius: 8px; display: inline-block; margin: 15px 0;">
-                Şifremi Sıfırla
-              </a>
-              <p style="font-size: 12px; color: #666;">Bu bağlantı 1 saat süreyle geçerlidir.</p>
-            </div>
-          `,
-        });
+      const branding = user.salonId
+        ? await getBrandingBySalonId(user.salonId)
+        : null;
+
+      const mailResult = await sendPasswordResetEmail({
+        to: hedefEmail,
+        adSoyad: user.adSoyad,
+        salonAdi: user.salonAdi,
+        resetUrl,
+        salonBranding: branding,
+      });
+
+      if (!mailResult.sent) {
+        console.error("Şifre sıfırlama maili gönderilemedi:", mailResult.reason);
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              mailResult.reason === "no_resend_or_recipient"
+                ? "E-posta servisi yapılandırılmamış. Lütfen sistem yöneticinizle iletişime geçin."
+                : "Sıfırlama e-postası gönderilemedi. Lütfen daha sonra tekrar deneyin.",
+          },
+          { status: 503 },
+        );
       }
 
       return NextResponse.json({
         success: true,
-        message: "Sıfırlama bağlantısı e-posta adresinize gönderildi.",
+        message: user.kurtarmaEmail
+          ? "Sıfırlama bağlantısı kurtarma e-posta adresinize gönderildi."
+          : "Sıfırlama bağlantısı e-posta adresinize gönderildi.",
       });
     }
 
-    // ❓ 4. YÖNTEM: GİZLİ SORU VE CEVAP İLE SIFIRLAMA
     if (islem === "gizli_soru_sifirla") {
       if (!gizliCevap || !yeniSifre) {
         return NextResponse.json(

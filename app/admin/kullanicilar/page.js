@@ -609,6 +609,15 @@ export default function SuperAdminDashboard() {
                         {u.email}
                       </span>
                       <span className="text-slate-400">{u.adSoyad}</span>
+                      {u.kurtarmaEmail ? (
+                        <span className="text-sky-400/80 block mt-1 text-[10px]">
+                          Kurtarma: {u.kurtarmaEmail}
+                        </span>
+                      ) : (
+                        <span className="text-slate-600 block mt-1 text-[10px] italic">
+                          Kurtarma e-postası yok
+                        </span>
+                      )}
                     </td>
                     <td className="p-4">
                       {u.sifreDegistirmeZorunlu ? (
