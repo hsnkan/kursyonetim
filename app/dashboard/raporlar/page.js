@@ -4,8 +4,15 @@ import { useEffect, useState, useRef } from "react";
 import { getKursYillari } from "@/lib/kursYillari";
 import PageHeader from "@/app/components/PageHeader";
 import { IconReports } from "@/app/components/NavIcons";
+import { useBranding } from "@/app/components/BrandingProvider";
 
 export default function RaporlarPage() {
+  const branding = useBranding();
+  const raporFooter =
+    branding.raporFooterMetni ||
+    `${branding.isletmeTamAdi || branding.salonAdi || "Akademi"} Otomatik Rapor Sistemleri`;
+  const raporBaslik =
+    (branding.isletmeTamAdi || branding.salonAdi || "AKADEMİ").toUpperCase();
   const [ogrenciOzet, setOgrenciOzet] = useState(null);
   const [gruplar, setGruplar] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -285,7 +292,7 @@ export default function RaporlarPage() {
             <div style="font-size: 8pt; color: #64748B;">İmza / Onay</div>
           </div>
 
-          <div class="footer">Balans Cimnastik Akademi Otomatik Rapor Sistemleri</div>
+          <div class="footer">${raporFooter}</div>
         </body>
       </html>
     `);
@@ -512,7 +519,7 @@ export default function RaporlarPage() {
         >
           <div className="header text-center border-b-2 border-slate-900 pb-3 mb-4">
             <h1 className="text-xl font-black uppercase text-slate-900 tracking-wider">
-              BALANS CİMNASTİK AKADEMİSİ
+              {raporBaslik}
             </h1>
             <p className="text-xs font-bold text-amber-600 uppercase mt-0.5">
               SPORCU YOKLAMA VE KATILIM RAPORU

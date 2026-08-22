@@ -52,6 +52,23 @@ const KursSalonSchema = new mongoose.Schema(
     mailFromName: { type: String, default: "", trim: true },
     mailFromAddress: { type: String, default: "", trim: true },
     kurulumNotu: { type: String, default: "" },
+    /** Tam kurum adı (Word formu, KVKK, rapor) */
+    isletmeTamAdi: { type: String, default: "", trim: true },
+    /** Destek oturumu / KVKK metinleri */
+    teknikDestekAdi: { type: String, default: "", trim: true },
+    sistemBaslik: { type: String, default: "", trim: true },
+    sistemAciklama: { type: String, default: "", trim: true },
+    /** Word kayıt formu üst bilgileri */
+    kayitFormUstBaslik: { type: String, default: "", trim: true },
+    kayitFormAltBaslik: { type: String, default: "", trim: true },
+    kayitFormSlogan: {
+      type: String,
+      default: "★ ELİT EĞİTİM • GÜÇLÜ GELECEK • SINIRSIZ POTANSİYEL ★",
+      trim: true,
+    },
+    raporFooterMetni: { type: String, default: "", trim: true },
+    /** Teslim checklist — canlı URL notu */
+    canliSiteUrl: { type: String, default: "", trim: true },
     ozellikler: {
       type: mongoose.Schema.Types.Mixed,
       default: () => ({}),

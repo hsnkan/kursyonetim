@@ -3,8 +3,20 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/app/components/PageHeader";
 import { IconStudents } from "@/app/components/NavIcons";
+import { useBranding } from "@/app/components/BrandingProvider";
 
 export default function OgrenciYonetimPage() {
+  const branding = useBranding();
+  const kurumTamAd =
+    branding.isletmeTamAdi || branding.salonAdi || "Spor Akademisi";
+  const kayitUst =
+    branding.kayitFormUstBaslik ||
+    branding.salonAdi?.split(" ")[0]?.toUpperCase() ||
+    "KURUM";
+  const kayitAlt = branding.kayitFormAltBaslik || "AKADEMİSİ";
+  const kayitSlogan =
+    branding.kayitFormSlogan ||
+    "★ ELİT EĞİTİM • GÜÇLÜ GELECEK • SINIRSIZ POTANSİYEL ★";
   const DEFAULT_WHATSAPP_LINK = "https://chat.whatsapp.com/GrupDavetKodunuz";
 
   const [ogrenciler, setOgrenciler] = useState([]);
@@ -428,7 +440,7 @@ export default function OgrenciYonetimPage() {
       <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
       <head>
         <meta charset='utf-8'>
-        <title>Balans Cimnastik Sporcu Kayıt Formu - ${ogrenciData.adSoyad || ""}</title>
+        <title>${kurumTamAd} Sporcu Kayıt Formu - ${ogrenciData.adSoyad || ""}</title>
         <style>
           @page { size: A4 portrait; margin: 0.2cm 0.2cm 0.2cm 1.5cm; }
           body { font-family: 'Times New Roman', Times, serif; color: #0F172A; font-size: 10pt; line-height: 1.2; margin: 0; padding: 0; }
@@ -452,10 +464,10 @@ export default function OgrenciYonetimPage() {
           <tr>
             <td style="border:none; width:20%;"></td>
             <td style="border:none; text-align:center; width:60%;">
-              <div class="header-title">BALANS</div>
-              <div class="header-sub">CİMNASTİK AKADEMİSİ</div>
+              <div class="header-title">${kayitUst}</div>
+              <div class="header-sub">${kayitAlt}</div>
               <div style="font-size:12pt; font-weight:bold; margin-top:2px;">SPORCU KAYIT FORMU</div>
-              <div class="slogan">★ ELİT EĞİTİM • GÜÇLÜ GELECEK • SINIRSIZ POTANSİYEL ★</div>
+              <div class="slogan">${kayitSlogan}</div>
             </td>
             <td style="border:none; text-align:right; width:20%;">${fotoHtml}</td>
           </tr>
@@ -555,7 +567,7 @@ export default function OgrenciYonetimPage() {
 
         <div class="sec-header">✔ 11. VELİ ONAYI</div>
         <div style="font-size:8pt; margin-bottom:8px; padding:2px;">
-          Yukarıda verdiğim bilgilerin doğru olduğunu beyan eder, Balans Cimnastik Akademi kurallarını kabul ettiğimi onaylarım.
+          Yukarıda verdiğim bilgilerin doğru olduğunu beyan eder, ${kurumTamAd} kurallarını kabul ettiğimi onaylarım.
         </div>
 
         <table style="border:none; margin-top:10px;">
@@ -578,8 +590,8 @@ export default function OgrenciYonetimPage() {
           <tr>
             <td style="border:none; width:20%;"></td>
             <td style="border:none; text-align:center; width:60%;">
-              <div class="header-title">BALANS</div>
-              <div class="header-sub">CİMNASTİK AKADEMİSİ</div>
+              <div class="header-title">${kayitUst}</div>
+              <div class="header-sub">${kayitAlt}</div>
               <div style="font-size:13pt; font-weight:bold; margin-top:4px; letter-spacing:1px;">KURAL VE ŞARTLAR</div>
               <div style="color:#B45309; font-size:9pt;">★ ★ ★</div>
             </td>
@@ -589,7 +601,7 @@ export default function OgrenciYonetimPage() {
 
         <div style="font-size:8.5pt; font-style:italic; margin-bottom:10px;">
           <b>Sevgili Veliler,</b><br/>
-          Balans Cimnastik Akademi'de amacımız çocuklarımıza güvenli, disiplinli ve verimli bir spor ortamı sunmaktır. Eğitim kalitesinin korunabilmesi ve sporcularımızın sağlıklı gelişim gösterebilmesi için aşağıdaki kuralların dikkatle okunmasını rica ederiz.
+          ${kurumTamAd}'de amacımız çocuklarımıza güvenli, disiplinli ve verimli bir spor ortamı sunmaktır. Eğitim kalitesinin korunabilmesi ve sporcularımızın sağlıklı gelişim gösterebilmesi için aşağıdaki kuralların dikkatle okunmasını rica ederiz.
         </div>
 
         <table style="border:none;">
@@ -636,7 +648,7 @@ export default function OgrenciYonetimPage() {
               <div class="rule-box">
                 <div class="rule-title">🌟 9. AKADEMİ PRENSİBİ</div>
                 <div class="rule-desc">
-                  Balans Cimnastik Akademi'de hedefimiz yalnızca başarılı sporcular yetiştirmek değildir. Çocuklarımızın disiplinli, mücadeleci, özgüvenli, sorumluluk sahibi ve güçlü karakterli bireyler olarak yetişmelerine katkı sağlamayı amaçlıyoruz. Sporcu gelişiminde süreklilik, sabır ve emek en önemli unsurlardır. Bu nedenle akademimizde süreç, sonuç kadar değerlidir.
+                  ${kurumTamAd}'de hedefimiz yalnızca başarılı sporcular yetiştirmek değildir. Çocuklarımızın disiplinli, mücadeleci, özgüvenli, sorumluluk sahibi ve güçlü karakterli bireyler olarak yetişmelerine katkı sağlamayı amaçlıyoruz. Sporcu gelişiminde süreklilik, sabır ve emek en önemli unsurlardır. Bu nedenle akademimizde süreç, sonuç kadar değerlidir.
                 </div>
               </div>
             </td>
@@ -679,7 +691,7 @@ export default function OgrenciYonetimPage() {
                   • Kamp katılımları sporcuların teknik gelişimi, fiziksel hazırlığı ve takım uyumu açısından değerlendirilmektedir.<br/>
                   • Kamp ve gelişim programlarına düzenli katılım, sporcunun yarışma kadrosunda yer alıp almayacağını etkileyen kriterlerden biridir.<br/>
                   • Yarışmalara katılım kararı yalnızca yaş veya kıdeme göre değil; devam durumu, antrenman performansı, kamp katılımı, disiplin ve teknik yeterlilik göz önünde bulundurularak antrenörler tarafından verilir.<br/>
-                  • Balans Cimnastik Akademi, sporcunun gelişimini ve hazır bulunuşluk seviyesini esas alarak yarışma katılımı konusunda karar verme hakkını saklı tutar.
+                  • ${kurumTamAd}, sporcunun gelişimini ve hazır bulunuşluk seviyesini esas alarak yarışma katılımı konusunda karar verme hakkını saklı tutar.
                 </div>
               </div>
             </td>
@@ -710,7 +722,7 @@ export default function OgrenciYonetimPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Balans_Cimnastik_Kayit_Formu_${(ogrenciData.adSoyad || "Ogrenci").replace(/\s+/g, "_")}.doc`;
+    a.download = `${kurumTamAd.replace(/\s+/g, "_")}_Kayit_Formu_${(ogrenciData.adSoyad || "Ogrenci").replace(/\s+/g, "_")}.doc`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -729,7 +741,7 @@ export default function OgrenciYonetimPage() {
     const dinamikWhatsappLink =
       ogrenciGrupNesnesi?.whatsappLink || DEFAULT_WHATSAPP_LINK;
 
-    const mesaj = `Merhaba, Balans Cimnastik Akademi'ye hoş geldiniz! ${ogrenciAdi} isimli öğrencimizin duyurularını takip edebileceğiniz ${ogrenciGrubu} WhatsApp grubumuzun katılım linki: ${dinamikWhatsappLink}`;
+    const mesaj = `Merhaba, ${kurumTamAd}'ye hoş geldiniz! ${ogrenciAdi} isimli öğrencimizin duyurularını takip edebileceğiniz ${ogrenciGrubu} WhatsApp grubumuzun katılım linki: ${dinamikWhatsappLink}`;
 
     window.open(
       `https://api.whatsapp.com/send?phone=${tel}&text=${encodeURIComponent(mesaj)}`,

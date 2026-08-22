@@ -1,6 +1,7 @@
 import Navbar from "@/app/components/Navbar";
 import BrandingProvider from "@/app/components/BrandingProvider";
 import ModulePageGuard from "@/app/components/ModulePageGuard";
+import BekleyenYuklemeBanner from "@/app/components/BekleyenYuklemeBanner";
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import { getSupportSessionBannerText } from "@/lib/siteConfig";
@@ -35,6 +36,8 @@ export default async function DashboardLayout({ children }) {
           </span>
         </div>
       )}
+
+      <BekleyenYuklemeBanner />
 
       <div className="flex flex-col md:flex-row flex-1 relative">
         {/* 🤸‍♂️ JİMNASTİK & PERFORMANS DİNAMİK ARKA PLAN ÇİZGİLERİ (SVG PATTERN) */}

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import dbConnect from "@/lib/db";
 import User from "@/models/User";
+import { getAktifKurumMetinleri } from "@/lib/kurumConfig";
 
 export async function POST() {
   try {
@@ -28,10 +29,11 @@ export async function POST() {
       { new: true },
     );
 
+    const kurum = await getAktifKurumMetinleri();
+
     return NextResponse.json({
       success: true,
-      message:
-        "Balans Yazılım Desteği için 2 saatlik erişim izni başarıyla tanımlandı!",
+      message: `${kurum.teknikDestekAdi} için 2 saatlik erişim izni başarıyla tanımlandı!`,
       until: updatedUser.supportAccessGrantedUntil,
     });
   } catch (error) {

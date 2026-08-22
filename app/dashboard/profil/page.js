@@ -6,8 +6,11 @@ import PasswordInput from "@/app/components/PasswordInput";
 import GymnastSuccessAnimation, {
   GYMNAST_ANIM_MS,
 } from "@/app/components/GymnastSuccessAnimation";
+import { useBranding } from "@/app/components/BrandingProvider";
 
 export default function ProfilPage() {
+  const branding = useBranding();
+  const destekAdi = branding.teknikDestekAdi || "Yazılım Desteği";
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -39,6 +42,13 @@ export default function ProfilPage() {
   const [verifyCode, setVerifyCode] = useState("");
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
   const [successAnim, setSuccessAnim] = useState(false);
+
+  const [veriYukleme, setVeriYukleme] = useState({
+    bekleyenler: [],
+    izin: { aktif: false, bitis: null },
+    loading: true,
+  });
+  const [veriYuklemeIslemId, setVeriYuklemeIslemId] = useState(null);
 
   // 💳 Sayfa Yüklendiğinde Lisans Bilgisini Getir
   useEffect(() => {
@@ -86,6 +96,27 @@ export default function ProfilPage() {
       }
     };
     fetchProfile();
+  }, []);
+
+  useEffect(() => {
+    const fetchVeriYuklemeler = async () => {
+      try {
+        const res = await fetch("/api/user/bekleyen-yuklemeler");
+        const data = await res.json();
+        if (data.success) {
+          setVeriYukleme({
+            bekleyenler: data.bekleyenler || [],
+            izin: data.izin || { aktif: false, bitis: null },
+            loading: false,
+          });
+        } else {
+          setVeriYukleme((prev) => ({ ...prev, loading: false }));
+        }
+      } catch {
+        setVeriYukleme((prev) => ({ ...prev, loading: false }));
+      }
+    };
+    fetchVeriYuklemeler();
   }, []);
 
   const handleHesapKaydet = async (e) => {
@@ -167,7 +198,7 @@ export default function ProfilPage() {
       const data = await res.json();
       if (data.success) {
         setMessage(
-          `✅ Balans Teknik Servis ekibine 3 saatlik inceleme izni başarıyla verildi! (Bitiş: ${data.bitisTarihi || "3 Saat Sonra"})`,
+          `✅ ${destekAdi} ekibine 3 saatlik inceleme izni başarıyla verildi! (Bitiş: ${data.bitisTarihi || "3 Saat Sonra"})`,
         );
       } else {
         setMessage("❌ Hata: " + data.error);
@@ -176,6 +207,70 @@ export default function ProfilPage() {
       setMessage("❌ İzin verilirken bir hata oluştu.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVeriYuklemeIzinVer = async () => {
+    setLoading(true);
+    setMessage("");
+    try {
+      const res = await fetch("/api/user/bekleyen-yuklemeler", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ islem: "izin_ver" }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const bitisStr = data.bitis
+          ? new Date(data.bitis).toLocaleString("tr-TR")
+          : "72 saat sonra";
+        setVeriYukleme((prev) => ({
+          ...prev,
+          izin: { aktif: true, bitis: data.bitis },
+        }));
+        setMessage(
+          `✅ 72 saatlik veri yükleme izni tanımlandı. Bu sürede geliştirici Excel yüklemeleri doğrudan uygulanabilir. (Bitiş: ${bitisStr})`,
+        );
+      } else {
+        setMessage("❌ Hata: " + data.error);
+      }
+    } catch {
+      setMessage("❌ İzin verilirken bir hata oluştu.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBekleyenYukleme = async (yuklemeId, islem) => {
+    const onayMetni =
+      islem === "onayla"
+        ? "Geliştirici tarafından hazırlanan veri yüklemesi sisteminize uygulanacak. Onaylıyor musunuz?"
+        : "Bu veri yükleme talebini reddetmek istediğinize emin misiniz?";
+
+    if (!window.confirm(onayMetni)) return;
+
+    setVeriYuklemeIslemId(yuklemeId);
+    setMessage("");
+    try {
+      const res = await fetch("/api/user/bekleyen-yuklemeler", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ islem, yuklemeId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage("✅ " + data.message);
+        setVeriYukleme((prev) => ({
+          ...prev,
+          bekleyenler: prev.bekleyenler.filter((b) => b._id !== yuklemeId),
+        }));
+      } else {
+        setMessage("❌ " + (data.error || "İşlem başarısız."));
+      }
+    } catch {
+      setMessage("❌ Bağlantı hatası oluştu.");
+    } finally {
+      setVeriYuklemeIslemId(null);
     }
   };
 
@@ -428,7 +523,7 @@ export default function ProfilPage() {
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            🛡️ Balans Yazılım İnceleme İzni (KVKK)
+            🛡️ {destekAdi} İnceleme İzni (KVKK)
           </h2>
           <p className="text-slate-400 text-xs mt-1 leading-relaxed max-w-xl">
             Teknik bir sorun yaşadığınızda veya güncelleme kontrolü gerektiğinde
@@ -441,8 +536,82 @@ export default function ProfilPage() {
           disabled={loading}
           className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-5 py-2.5 rounded-xl text-xs transition cursor-pointer disabled:opacity-50"
         >
-          🔑 Balans Yazılım Desteğine 3 Saatlik İzin Ver
+          🔑 {destekAdi} — 3 Saatlik İzin Ver
         </button>
+      </div>
+
+      {/* 📊 VERİ YÜKLEME İZNİ (KVKK) */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+        <div>
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            📊 Veri Yükleme İzni (KVKK)
+          </h2>
+          <p className="text-slate-400 text-xs mt-1 leading-relaxed max-w-xl">
+            Geliştiricinin Excel ile toplu öğrenci veya geçmiş ödeme yüklemesi
+            yapabilmesi için <strong>72 saatlik geçici izin</strong>{" "}
+            tanımlayabilirsiniz. İzin yoksa yüklemeler onayınıza gönderilir;
+            programı açtığınızda kabul edebilirsiniz.
+          </p>
+        </div>
+
+        {veriYukleme.izin.aktif ? (
+          <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl font-bold text-sm">
+            ✅ Veri yükleme izni aktif
+            {veriYukleme.izin.bitis
+              ? ` — Bitiş: ${new Date(veriYukleme.izin.bitis).toLocaleString("tr-TR")}`
+              : ""}
+          </div>
+        ) : (
+          <button
+            onClick={handleVeriYuklemeIzinVer}
+            disabled={loading || veriYukleme.loading}
+            className="bg-blue-600 hover:bg-blue-500 text-white font-black px-5 py-2.5 rounded-xl text-xs transition cursor-pointer disabled:opacity-50"
+          >
+            📤 Geliştiriciye 72 Saatlik Veri Yükleme İzni Ver
+          </button>
+        )}
+
+        {!veriYukleme.loading && veriYukleme.bekleyenler.length > 0 && (
+          <div className="space-y-3 pt-2 border-t border-slate-800">
+            <p className="text-xs font-black uppercase text-amber-400 tracking-wider">
+              Bekleyen yüklemeler
+            </p>
+            {veriYukleme.bekleyenler.map((b) => (
+              <div
+                key={b._id}
+                className="p-4 bg-slate-950 border border-slate-700 rounded-xl space-y-3"
+              >
+                <div>
+                  <p className="font-black text-white text-sm">
+                    Geliştirici veri yüklemesi yapmak istiyor
+                  </p>
+                  <p className="text-slate-400 text-xs mt-1">
+                    {b.tipEtiket} · {b.kayitSayisi} kayıt
+                    {b.gelistiriciNotu ? ` · ${b.gelistiriciNotu}` : ""}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={veriYuklemeIslemId === b._id}
+                    onClick={() => handleBekleyenYukleme(b._id, "onayla")}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-4 py-2 rounded-lg text-xs disabled:opacity-50 cursor-pointer"
+                  >
+                    ✅ Kabul Et ve Uygula
+                  </button>
+                  <button
+                    type="button"
+                    disabled={veriYuklemeIslemId === b._id}
+                    onClick={() => handleBekleyenYukleme(b._id, "reddet")}
+                    className="bg-slate-800 hover:bg-slate-700 text-slate-300 font-black px-4 py-2 rounded-lg text-xs border border-slate-600 disabled:opacity-50 cursor-pointer"
+                  >
+                    ✕ Reddet
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 📱 3. KART: GOOGLE AUTHENTICATOR 2FA KARTI */}

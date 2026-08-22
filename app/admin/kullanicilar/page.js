@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import SalonKurulumTab from "./SalonKurulumTab";
+import KurumTeslimTab from "./KurumTeslimTab";
 import { calculateRemainingLicenseDays } from "@/lib/license";
 
 export default function SuperAdminDashboard() {
@@ -52,11 +53,32 @@ export default function SuperAdminDashboard() {
   const [whatsappLink, setWhatsappLink] = useState("");
   const [duzenleneceGrup, setDuzenleneceGrup] = useState(null);
 
+  const [bekleyenYuklemeler, setBekleyenYuklemeler] = useState([]);
+  const [veriYuklemeIzinAktif, setVeriYuklemeIzinAktif] = useState(false);
+
   useEffect(() => {
     kullanicilariGetir();
     gruplariGetir();
     salonlariGetir();
   }, []);
+
+  useEffect(() => {
+    if (aktifSekme !== "excel") return;
+    bekleyenYuklemeleriGetir();
+  }, [aktifSekme]);
+
+  const bekleyenYuklemeleriGetir = async () => {
+    try {
+      const res = await fetch("/api/admin/bekleyen-yukleme");
+      const data = await res.json();
+      if (data.success) {
+        setBekleyenYuklemeler(data.data || []);
+        setVeriYuklemeIzinAktif(Boolean(data.izinAktif));
+      }
+    } catch {
+      // sessiz geç
+    }
+  };
 
   const salonlariGetir = async () => {
     try {
@@ -437,14 +459,23 @@ export default function SuperAdminDashboard() {
           ],
         }));
 
-        const res = await fetch("/api/gelistirici", {
+        const res = await fetch("/api/admin/bekleyen-yukleme", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ yuklenecekler }),
+          body: JSON.stringify({
+            tip: "ogrenci_excel",
+            payload: { yuklenecekler },
+          }),
         });
         const resData = await res.json();
-        if (resData.success) bildirimGoster(`🚀 ${resData.message}`);
-        else alert(`✕ ${resData.error}`);
+        if (resData.success) {
+          if (resData.mod === "hemen_uygulandi") {
+            bildirimGoster(`🚀 ${resData.message}`);
+          } else {
+            bildirimGoster(`📋 ${resData.message}`);
+          }
+          bekleyenYuklemeleriGetir();
+        } else alert(`✕ ${resData.error}`);
       } catch {
         alert("Excel okunurken hata oluştu.");
       } finally {
@@ -473,14 +504,23 @@ export default function SuperAdminDashboard() {
           aciklama: item["Açıklama"] || item["aciklama"] || "",
         }));
 
-        const res = await fetch("/api/gelistirici", {
+        const res = await fetch("/api/admin/bekleyen-yukleme", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ islem: "gecmis_odeme_yukle", odemeler }),
+          body: JSON.stringify({
+            tip: "gecmis_odeme_excel",
+            payload: { odemeler },
+          }),
         });
         const resData = await res.json();
-        if (resData.success) bildirimGoster(`💳 ${resData.message}`);
-        else alert(`✕ ${resData.error}`);
+        if (resData.success) {
+          if (resData.mod === "hemen_uygulandi") {
+            bildirimGoster(`💳 ${resData.message}`);
+          } else {
+            bildirimGoster(`📋 ${resData.message}`);
+          }
+          bekleyenYuklemeleriGetir();
+        } else alert(`✕ ${resData.error}`);
       } catch {
         alert("Dosya okunamadı.");
       } finally {
@@ -538,6 +578,17 @@ export default function SuperAdminDashboard() {
             </button>
 
             <button
+              onClick={() => setAktifSekme("kurum-teslim")}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer ${
+                aktifSekme === "kurum-teslim"
+                  ? "bg-rose-600 text-white shadow-lg"
+                  : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+              }`}
+            >
+              🏁 Kurum Teslim Yapılandırması
+            </button>
+
+            <button
               onClick={() => setAktifSekme("kurs-kurulum")}
               className={`px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer ${
                 aktifSekme === "kurs-kurulum"
@@ -576,6 +627,10 @@ export default function SuperAdminDashboard() {
           <div className="p-4 bg-emerald-500/20 border border-emerald-500 text-emerald-400 rounded-2xl text-sm font-bold animate-pulse">
             {mesaj}
           </div>
+        )}
+
+        {aktifSekme === "kurum-teslim" && (
+          <KurumTeslimTab bildirimGoster={bildirimGoster} />
         )}
 
         {/* ================= SEKME: KURS / SALON KURULUMU ================= */}
@@ -856,6 +911,48 @@ export default function SuperAdminDashboard() {
         {/* ================= SEKME 3: EXCEL AKTARIMLARI ================= */}
         {aktifSekme === "excel" && (
           <div className="space-y-6">
+            <div className="bg-slate-900 border border-blue-500/30 p-5 rounded-3xl shadow-xl space-y-3">
+              <h3 className="text-sm font-black text-blue-400 uppercase tracking-wider">
+                🛡️ Müşteri Onaylı Veri Yükleme
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Excel yüklemeleri müşteri onayına tabidir. Müşteri{" "}
+                <strong>Profil → Veri Yükleme İzni</strong> bölümünden 72
+                saatlik izin verirse yükleme anında uygulanır; aksi halde
+                kuyruğa alınır ve müşteri programı açtığında kabul edebilir.
+              </p>
+              <div
+                className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-black ${
+                  veriYuklemeIzinAktif
+                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                    : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                }`}
+              >
+                {veriYuklemeIzinAktif
+                  ? "✅ Müşteri veri yükleme izni aktif — yüklemeler doğrudan uygulanır"
+                  : "⏳ Müşteri izni yok — yüklemeler onay kuyruğuna gider"}
+              </div>
+              {bekleyenYuklemeler.length > 0 && (
+                <div className="pt-2 border-t border-slate-800 space-y-2">
+                  <p className="text-[11px] font-black uppercase text-slate-500">
+                    Onay bekleyen yüklemeler ({bekleyenYuklemeler.length})
+                  </p>
+                  {bekleyenYuklemeler.map((b) => (
+                    <div
+                      key={b._id}
+                      className="text-xs text-slate-300 bg-slate-950 p-3 rounded-xl border border-slate-800"
+                    >
+                      {b.ozet?.aciklama || b.tip} · {b.ozet?.kayitSayisi || 0}{" "}
+                      kayıt ·{" "}
+                      <span className="text-amber-400 font-bold">
+                        {b.durum === "bekliyor" ? "Müşteri onayı bekliyor" : b.durum}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl space-y-4">
               <div className="flex justify-between items-center border-b border-slate-800 pb-3">
                 <h2 className="text-lg font-black text-amber-400">

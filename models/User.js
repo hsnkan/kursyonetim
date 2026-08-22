@@ -100,6 +100,11 @@ const UserSchema = new mongoose.Schema(
       type: Date, // Müşterinin teknik desteğe verdiği iznin bitiş tarihi (3 Saatlik)
       default: null,
     },
+    /** Excel / toplu veri yüklemesi için geliştirici izni */
+    dataUploadAccessGrantedUntil: {
+      type: Date,
+      default: null,
+    },
 
     // 🌐 Güvenlik & Cihaz Hatırlama
     trustedDevices: [

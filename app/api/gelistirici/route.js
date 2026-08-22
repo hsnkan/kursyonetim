@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import mongoose from "mongoose";
 import { requireDeveloperPin } from "@/lib/auth";
+import {
+  uygulaGecmisOdemeYukleme,
+  uygulaOgrenciExcelYukleme,
+} from "@/lib/dataUploadApply";
 
 const OgrenciSchema = new mongoose.Schema({}, { strict: false });
 const YoklamaSchema = new mongoose.Schema({}, { strict: false });
@@ -111,75 +115,13 @@ export async function POST(request) {
     const body = await request.json();
 
     if (body.islem === "gecmis_odeme_yukle" && Array.isArray(body.odemeler)) {
-      const tumOgrenciler = await Ogrenci.find({});
-      let basarili = 0;
-      let eslesmeyen = 0;
-
-      for (const item of body.odemeler) {
-        const ogrenciAd = (item.adSoyad || "").trim().toLowerCase();
-        if (!ogrenciAd) continue;
-
-        const ogrenci = tumOgrenciler.find(
-          (o) => (o.adSoyad || "").trim().toLowerCase() === ogrenciAd,
-        );
-
-        if (ogrenci) {
-          const tutar =
-            Number(item.tutar) || Number(ogrenci.aylikUcret) || 2000;
-          const yil = Number(item.yil) || new Date().getFullYear();
-          const ay = Number(item.ay) || new Date().getMonth() + 1;
-          const odemeGunu = Number(item.odemeGunu) || ogrenci.odemeGunu || 1;
-          const odemeTarihiObj = new Date(yil, ay - 1, odemeGunu);
-
-          await Odeme.create({
-            ogrenciId: ogrenci._id,
-            tutar,
-            durum: "odendi",
-            yil,
-            ay,
-            sonOdemeTarihi: odemeTarihiObj,
-            odemeTarihi: item.odemeTarihi
-              ? new Date(item.odemeTarihi)
-              : odemeTarihiObj,
-            aciklama:
-              item.aciklama || `${yil}/${ay} Dönemi Geçmiş Aidat Tahsilatı`,
-            hatirlatmaGonderildi: false,
-          });
-          basarili++;
-        } else {
-          eslesmeyen++;
-        }
-      }
-
-      return NextResponse.json({
-        success: true,
-        message: `${basarili} adet geçmiş ödeme kaydı kasanıza başarıyla işlendi.${
-          eslesmeyen > 0
-            ? ` (${eslesmeyen} adet ödeme, veritabanında eşleşen öğrenci bulunamadığı için atlandı)`
-            : ""
-        }`,
-      });
+      const sonuc = await uygulaGecmisOdemeYukleme(body.odemeler);
+      return NextResponse.json(sonuc);
     }
 
     if (Array.isArray(body.yuklenecekler)) {
-      let yuklenen = 0;
-      for (const ogrenci of body.yuklenecekler) {
-        if (ogrenci.adSoyad) {
-          await Ogrenci.create({
-            adSoyad: String(ogrenci.adSoyad).trim(),
-            grup: ogrenci.grup ? String(ogrenci.grup) : "",
-            aylikUcret: Number(ogrenci.aylikUcret) || 2000,
-            odemeGunu: Number(ogrenci.odemeGunu) || 1,
-            durum: "aktif",
-          });
-          yuklenen++;
-        }
-      }
-
-      return NextResponse.json({
-        success: true,
-        message: `Toplam ${yuklenen} öğrenci Excel'den veritabanına aktarıldı!`,
-      });
+      const sonuc = await uygulaOgrenciExcelYukleme(body.yuklenecekler);
+      return NextResponse.json(sonuc);
     }
 
     return NextResponse.json(
