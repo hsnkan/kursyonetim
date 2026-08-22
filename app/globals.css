@@ -92,22 +92,46 @@ body {
   animation: animate-shake 0.35s ease-in-out;
 }
 
-/* 3D metal para — 2 sn bekle, dön, 2 sn bekle */
+/* Logo — çevresel 3D metal halka + duraklamalı dönüş */
+.logo-rim-3d-ring {
+  background: conic-gradient(
+    from 210deg,
+    color-mix(in srgb, var(--coin-accent, #d4af37) 45%, #000),
+    color-mix(in srgb, var(--coin-accent, #d4af37) 100%, #fff 35%),
+    var(--coin-accent, #d4af37),
+    color-mix(in srgb, var(--coin-accent, #d4af37) 55%, #000),
+    color-mix(in srgb, var(--coin-accent, #d4af37) 90%, #fff 20%),
+    color-mix(in srgb, var(--coin-accent, #d4af37) 45%, #000)
+  );
+  box-shadow:
+    0 10px 22px rgba(0, 0, 0, 0.45),
+    0 4px 10px color-mix(in srgb, var(--coin-accent, #d4af37) 35%, transparent),
+    inset 2px 3px 5px rgba(255, 255, 255, 0.38),
+    inset -3px -5px 10px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px color-mix(in srgb, var(--coin-accent, #d4af37) 70%, #fff);
+}
+
+.logo-rim-3d-face {
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.35),
+    inset 0 -1px 2px rgba(255, 255, 255, 0.08);
+}
+
 @keyframes logo-coin-flip-pause {
   0%,
   36.36% {
-    transform: rotateX(12deg) rotateY(0deg);
+    transform: rotateY(0deg);
   }
   36.36% {
-    transform: rotateX(12deg) rotateY(0deg);
+    transform: rotateY(0deg);
     animation-timing-function: ease-in-out;
   }
   63.64% {
-    transform: rotateX(12deg) rotateY(360deg);
+    transform: rotateY(360deg);
   }
   63.64%,
   100% {
-    transform: rotateX(12deg) rotateY(360deg);
+    transform: rotateY(360deg);
   }
 }
 
@@ -115,27 +139,6 @@ body {
   animation: logo-coin-flip-pause 5.5s infinite;
   transform-style: preserve-3d;
   will-change: transform;
-}
-
-.coin-metal-rim {
-  background: conic-gradient(
-    from 210deg,
-    #6b4e0a,
-    #f5d76e,
-    #fff8dc,
-    #c9a227,
-    #8b6914,
-    #f5d76e,
-    #6b4e0a
-  );
-  opacity: 0.72;
-  padding: 3px;
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  box-shadow: 0 0 14px color-mix(in srgb, var(--coin-accent, #d4af37) 45%, transparent);
 }
 
 @keyframes logo-coin-glow {
