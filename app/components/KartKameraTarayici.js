@@ -9,13 +9,15 @@ const OCR_INTERVAL_MS = 700;
 const OCR_INTERVAL_IOS_MS = 750;
 const MIN_KART_UZUNLUK = 5;
 const OCR_ONAY_SAYISI = 2;
-const OCR_GUVEN_ESIK = 55;
-const OCR_TEK_OKUMA_ESIK = 50;
-/** Tek satır kart numarası (~13pt yükseklik) */
-const SATIR_OKUMA_GENISLIK = 0.9;
-const SATIR_OKUMA_YUKSEKLIK_ORAN = 0.055;
-const SATIR_OKUMA_MIN_PX = 20;
-const SATIR_OKUMA_MAX_PX = 28;
+const OCR_GUVEN_ESIK = 48;
+const OCR_TEK_OKUMA_ESIK = 42;
+/** Odak şeridi — önceki boyutun ~2 katı (yükseklik + geniş okuma alanı) */
+const SATIR_OKUMA_GENISLIK = 0.92;
+const SATIR_OKUMA_YUKSEKLIK_ORAN = 0.11;
+const SATIR_OKUMA_MIN_PX = 40;
+const SATIR_OKUMA_MAX_PX = 56;
+const ODAK_SERIT_KENAR_ORAN = (1 - SATIR_OKUMA_GENISLIK) / 2;
+const OCR_BUYUTME = 3;
 
 function satirTaramaOlculeri(genislikTaban, yukseklikTaban) {
   const width = Math.floor(genislikTaban * SATIR_OKUMA_GENISLIK);
@@ -30,14 +32,17 @@ function satirTaramaOlculeri(genislikTaban, yukseklikTaban) {
 }
 
 function ocrIcinHazirla(canvas) {
+  const scale = OCR_BUYUTME;
   const out = document.createElement("canvas");
-  out.width = canvas.width;
-  out.height = canvas.height;
-  const ctx = canvas.getContext("2d");
+  out.width = canvas.width * scale;
+  out.height = canvas.height * scale;
   const octx = out.getContext("2d");
-  if (!ctx || !octx) return canvas;
+  if (!octx) return canvas;
 
-  const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  octx.imageSmoothingEnabled = false;
+  octx.drawImage(canvas, 0, 0, out.width, out.height);
+
+  const img = octx.getImageData(0, 0, out.width, out.height);
   const d = img.data;
   let min = 255;
   let max = 0;
@@ -51,9 +56,9 @@ function ocrIcinHazirla(canvas) {
   }
 
   const aralik = max - min || 1;
+  const esik = min + aralik * 0.42;
   for (let i = 0, j = 0; i < d.length; i += 4, j++) {
-    const gerilim = ((grays[j] - min) / aralik) * 255;
-    const v = gerilim > 155 ? 255 : gerilim < 90 ? 0 : gerilim;
+    const v = grays[j] >= esik ? 255 : 0;
     d[i] = v;
     d[i + 1] = v;
     d[i + 2] = v;
@@ -63,6 +68,12 @@ function ocrIcinHazirla(canvas) {
   octx.putImageData(img, 0, 0);
   return out;
 }
+
+const odakSeritStili = {
+  "--odak-serit-yukseklik": `${SATIR_OKUMA_MAX_PX}px`,
+  "--odak-serit-yarim": `${SATIR_OKUMA_MAX_PX / 2}px`,
+  "--odak-serit-kenar": `${ODAK_SERIT_KENAR_ORAN * 100}%`,
+};
 
 async function kameraKaynagiSec(Html5Qrcode) {
   try {
@@ -216,15 +227,13 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
     const { width: cropW, height: cropH } = satirTaramaOlculeri(sw, sh);
     const sx = (sw - cropW) / 2;
     const sy = (sh - cropH) / 2;
-    const maxW = 720;
-    const scale = Math.min(1, maxW / cropW);
 
-    canvas.width = Math.floor(cropW * scale);
-    canvas.height = Math.floor(cropH * scale);
+    canvas.width = cropW;
+    canvas.height = cropH;
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
 
-    ctx.drawImage(videoEl, sx, sy, cropW, cropH, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(videoEl, sx, sy, cropW, cropH, 0, 0, cropW, cropH);
     return canvas;
   }, []);
 
@@ -262,6 +271,7 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
       await worker.setParameters({
         tessedit_char_whitelist: "0123456789",
         tessedit_pageseg_mode: PSM.SINGLE_LINE,
+        user_defined_dpi: "300",
       });
       ocrWorkerRef.current = worker;
       setMod("numara");
@@ -421,7 +431,10 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
         </div>
 
         <div className="p-4 space-y-3">
-          <div className="relative w-full min-h-[260px] rounded-2xl overflow-hidden bg-slate-950">
+          <div
+            className="relative w-full min-h-[260px] rounded-2xl overflow-hidden bg-slate-950"
+            style={odakSeritStili}
+          >
             <div id="kart-kamera-view" className="absolute inset-0 w-full h-full min-h-[260px]" />
             {!taraniyor && !hata && <KameraOdakOverlay />}
           </div>
@@ -436,9 +449,22 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
             <div className="space-y-2">
               <p className="text-center text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-2.5">
                 {mod === "numara"
-                  ? "Kart numarasını ortadaki şeffaf şeride hizalayın; dış alan flu."
+                  ? "Numarayı geniş şeffaf şeride hizalayın. Algılanırsa yeşil butona basabilirsiniz."
                   : "Kamera hazırlanıyor..."}
               </p>
+              <details className="text-[10px] text-slate-600 bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                <summary className="font-bold cursor-pointer text-slate-700">
+                  Kartta okuma kalitesi için
+                </summary>
+                <ul className="mt-2 space-y-1 list-disc list-inside leading-relaxed">
+                  <li>Siyah veya koyu numara, açık/beyaz zemin (yüksek kontrast)</li>
+                  <li>Kalın ve büyük yazı (en az 16pt), tek yatay satır</li>
+                  <li>Mat yüzey; parlak/laminasyon yansıma yapar</li>
+                  <li>Fiziksel kart kullanın (bilgisayar/telefon ekranı zor okunur)</li>
+                  <li>İyi ışık, gölgesiz; kartı düz tutup 2 sn sabit bekleyin</li>
+                  <li>İsteğe bağlı: numaranın altına Code128 barkod ekleyin (en hızlı okuma)</li>
+                </ul>
+              </details>
               {adayNumara && (
                 <button
                   type="button"

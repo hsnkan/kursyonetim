@@ -163,37 +163,37 @@ body {
   left: 0;
   right: 0;
   top: 0;
-  height: calc(50% - var(--odak-serit-yarim, 14px));
+  height: calc(50% - var(--odak-serit-yarim, 28px));
 }
 
 .kart-kamera-odak-blur-bottom {
   left: 0;
   right: 0;
   bottom: 0;
-  height: calc(50% - var(--odak-serit-yarim, 14px));
+  height: calc(50% - var(--odak-serit-yarim, 28px));
 }
 
 .kart-kamera-odak-blur-left {
   left: 0;
-  width: 5%;
-  top: calc(50% - var(--odak-serit-yarim, 14px));
-  height: var(--odak-serit-yukseklik, 28px);
+  width: var(--odak-serit-kenar, 4%);
+  top: calc(50% - var(--odak-serit-yarim, 28px));
+  height: var(--odak-serit-yukseklik, 56px);
 }
 
 .kart-kamera-odak-blur-right {
   right: 0;
-  width: 5%;
-  top: calc(50% - var(--odak-serit-yarim, 14px));
-  height: var(--odak-serit-yukseklik, 28px);
+  width: var(--odak-serit-kenar, 4%);
+  top: calc(50% - var(--odak-serit-yarim, 28px));
+  height: var(--odak-serit-yukseklik, 56px);
 }
 
 .kart-kamera-odak-serit {
   position: absolute;
-  left: 5%;
-  right: 5%;
+  left: var(--odak-serit-kenar, 4%);
+  right: var(--odak-serit-kenar, 4%);
   top: 50%;
   transform: translateY(-50%);
-  height: var(--odak-serit-yukseklik, 28px);
+  height: var(--odak-serit-yukseklik, 56px);
   border: 2px solid rgba(52, 211, 153, 0.95);
   border-radius: 8px;
   box-shadow:
