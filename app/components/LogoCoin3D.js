@@ -12,34 +12,38 @@ function LogoWithRim3D({
 }) {
   const isDataUrl = logoSrc?.startsWith("data:");
   const accent = borderColor || "#d4af37";
-  const rimWidth = Math.max(4, Math.round(size * 0.1));
+  const rimWidth = Math.max(5, Math.round(size * 0.13));
+  const grooveWidth = Math.max(2, Math.round(rimWidth * 0.22));
+  const faceInset = rimWidth + grooveWidth;
 
   return (
     <div
       className="relative w-full h-full rounded-full logo-rim-3d"
-      style={{
-        "--coin-accent": accent,
-        "--rim-width": `${rimWidth}px`,
-      }}
+      style={{ "--coin-accent": accent }}
     >
-      <div className="absolute inset-0 rounded-full logo-rim-3d-ring pointer-events-none" />
+      <div className="absolute inset-0 rounded-full logo-rim-3d-outer pointer-events-none" />
 
       <div
-        className="absolute rounded-full overflow-hidden logo-rim-3d-face bg-slate-950"
-        style={{ inset: rimWidth }}
+        className="absolute rounded-full logo-rim-3d-groove pointer-events-none"
+        style={{ inset: rimWidth - grooveWidth }}
+      />
+
+      <div
+        className="absolute rounded-full overflow-hidden logo-rim-3d-face"
+        style={{ inset: faceInset }}
       >
         {isDataUrl ? (
           <img
             src={logoSrc}
             alt={alt}
-            className={`w-full h-full ${fit === "contain" ? "object-contain p-1" : "object-cover"}`}
+            className={`w-full h-full ${fit === "contain" ? "object-contain p-0.5" : "object-cover"}`}
           />
         ) : (
           <Image
             src={logoSrc || "/logo.png"}
             alt={alt}
             fill
-            className={fit === "contain" ? "object-contain p-1" : "object-cover"}
+            className={fit === "contain" ? "object-contain p-0.5" : "object-cover"}
             sizes={`${size}px`}
             priority
             unoptimized={unoptimized}
@@ -51,7 +55,7 @@ function LogoWithRim3D({
 }
 
 /**
- * Logo + çevresel 3D metal halka. 2 sn bekleyip tek tur döner.
+ * Mockup: çevresel 3D metal halka + logo yüzü. 2 sn bekleyip tek tur döner.
  */
 export default function LogoCoin3D({
   logoSrc = "/logo.png",
@@ -64,7 +68,7 @@ export default function LogoCoin3D({
   animate = true,
   showGlowRing = true,
 }) {
-  const perspective = Math.round(size * 2.8);
+  const perspective = Math.round(size * 3);
   const accent = borderColor || "#d4af37";
 
   const faceProps = {
@@ -103,8 +107,8 @@ export default function LogoCoin3D({
   if (!animate) {
     return (
       <div
-        className={`relative shrink-0 ${className}`}
-        style={{ width: size, height: size }}
+        className={`relative shrink-0 logo-coin-tilt ${className}`}
+        style={{ width: size, height: size, perspective: `${perspective}px` }}
       >
         <LogoWithRim3D {...faceProps} />
       </div>
@@ -123,11 +127,13 @@ export default function LogoCoin3D({
         />
       )}
 
-      <div
-        className="logo-coin-flip-pause relative w-full h-full"
-        style={{ transformStyle: "preserve-3d" }}
-      >
-        {coinDisc}
+      <div className="logo-coin-tilt relative w-full h-full">
+        <div
+          className="logo-coin-flip-pause relative w-full h-full"
+          style={{ transformStyle: "preserve-3d" }}
+        >
+          {coinDisc}
+        </div>
       </div>
     </div>
   );

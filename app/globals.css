@@ -92,29 +92,43 @@ body {
   animation: animate-shake 0.35s ease-in-out;
 }
 
-/* Logo — çevresel 3D metal halka + duraklamalı dönüş */
-.logo-rim-3d-ring {
+/* Logo — mockup: kalın çevresel 3D halka + duraklamalı dönüş */
+.logo-coin-tilt {
+  transform: rotateX(11deg);
+  transform-style: preserve-3d;
+}
+
+.logo-rim-3d-outer {
   background: conic-gradient(
-    from 210deg,
-    color-mix(in srgb, var(--coin-accent, #d4af37) 45%, #000),
-    color-mix(in srgb, var(--coin-accent, #d4af37) 100%, #fff 35%),
+    from 225deg,
+    color-mix(in srgb, var(--coin-accent, #d4af37) 35%, #000),
+    color-mix(in srgb, var(--coin-accent, #d4af37) 100%, #fff 42%),
+    color-mix(in srgb, var(--coin-accent, #d4af37) 85%, #fff 25%),
     var(--coin-accent, #d4af37),
-    color-mix(in srgb, var(--coin-accent, #d4af37) 55%, #000),
-    color-mix(in srgb, var(--coin-accent, #d4af37) 90%, #fff 20%),
-    color-mix(in srgb, var(--coin-accent, #d4af37) 45%, #000)
+    color-mix(in srgb, var(--coin-accent, #d4af37) 50%, #000),
+    color-mix(in srgb, var(--coin-accent, #d4af37) 100%, #fff 35%),
+    color-mix(in srgb, var(--coin-accent, #d4af37) 35%, #000)
   );
   box-shadow:
-    0 10px 22px rgba(0, 0, 0, 0.45),
-    0 4px 10px color-mix(in srgb, var(--coin-accent, #d4af37) 35%, transparent),
-    inset 2px 3px 5px rgba(255, 255, 255, 0.38),
-    inset -3px -5px 10px rgba(0, 0, 0, 0.55),
-    inset 0 0 0 1px color-mix(in srgb, var(--coin-accent, #d4af37) 70%, #fff);
+    0 12px 26px rgba(0, 0, 0, 0.5),
+    0 5px 14px color-mix(in srgb, var(--coin-accent, #d4af37) 40%, transparent),
+    inset 3px 4px 7px rgba(255, 255, 255, 0.48),
+    inset -4px -7px 12px rgba(0, 0, 0, 0.62),
+    inset 0 0 0 1px color-mix(in srgb, var(--coin-accent, #d4af37) 75%, #fff);
+}
+
+.logo-rim-3d-groove {
+  background: linear-gradient(145deg, #0a0a0a 0%, #151515 50%, #080808 100%);
+  box-shadow:
+    inset 0 3px 8px rgba(0, 0, 0, 0.85),
+    inset 0 -1px 2px rgba(255, 255, 255, 0.06);
 }
 
 .logo-rim-3d-face {
+  background: #06080f;
   box-shadow:
-    inset 0 2px 6px rgba(0, 0, 0, 0.35),
-    inset 0 -1px 2px rgba(255, 255, 255, 0.08);
+    inset 0 3px 10px rgba(0, 0, 0, 0.55),
+    inset 0 -1px 3px rgba(255, 255, 255, 0.06);
 }
 
 @keyframes logo-coin-flip-pause {
