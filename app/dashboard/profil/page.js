@@ -12,6 +12,7 @@ import LicenseStatusBadge, {
   dismissLicenseBanner,
   isLicenseBannerDismissed,
 } from "@/app/components/LicenseStatusBadge";
+import GelistiriciKartvizit from "@/app/components/GelistiriciKartvizit";
 import { SECURITY_QUESTIONS } from "@/lib/securityQuestions";
 
 export default function ProfilPage() {
@@ -814,6 +815,20 @@ export default function ProfilPage() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* 📇 YAZILIM GELİŞTİRİCİ İLETİŞİM */}
+      <div className="space-y-3">
+        <div>
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            📇 Yazılım Geliştirici İletişim
+          </h2>
+          <p className="text-slate-400 text-xs mt-1 leading-relaxed max-w-xl">
+            Teknik destek, lisans yenileme veya yazılım güncellemeleri için
+            geliştiricinizle doğrudan iletişime geçebilirsiniz.
+          </p>
+        </div>
+        <GelistiriciKartvizit variant="musteri" />
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">

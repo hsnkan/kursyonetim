@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import SalonKurulumTab from "./SalonKurulumTab";
 import KurumTeslimTab from "./KurumTeslimTab";
+import GelistiriciKartvizit, {
+  GelistiriciLogo,
+} from "@/app/components/GelistiriciKartvizit";
 import { calculateRemainingLicenseDays } from "@/lib/license";
 
 export default function SuperAdminDashboard() {
@@ -539,14 +542,20 @@ export default function SuperAdminDashboard() {
         {/* ÜST BAŞLIK, ÇIKIŞ VE SEKME MENÜSÜ */}
         <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-2xl space-y-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-black text-amber-400 uppercase flex items-center gap-2">
-                👑 Geliştirici & Teknik Servis Paneli
-              </h1>
-              <p className="text-xs text-slate-400">
-                Müşteri Yönetimi, Şifre ve Kullanıcı Adı Düzenleme, 2FA
-                Sıfırlama
-              </p>
+            <div className="flex items-start gap-4 min-w-0">
+              <GelistiriciLogo size={64} />
+              <div className="min-w-0">
+                <h1 className="text-2xl font-black text-amber-400 uppercase flex items-center gap-2">
+                  Geliştirici & Teknik Servis Paneli
+                </h1>
+                <p className="text-xs text-cyan-300/80 font-bold uppercase tracking-wider">
+                  Eagle Software — Freelance Yazılım Hizmetleri
+                </p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Müşteri yönetimi, kurum teslimi, lisans ve veri yükleme
+                  işlemleri
+                </p>
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
@@ -625,6 +634,8 @@ export default function SuperAdminDashboard() {
             </button>
           </div>
         </div>
+
+        <GelistiriciKartvizit />
 
         {mesaj && (
           <div className="p-4 bg-emerald-500/20 border border-emerald-500 text-emerald-400 rounded-2xl text-sm font-bold animate-pulse">
