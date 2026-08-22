@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import Image from "next/image";
-import { normalizeMobileCardId } from "@/lib/mobileYoklama";
 import { useBranding } from "@/app/components/BrandingProvider";
+import BrandingLogo3D from "@/app/components/BrandingLogo3D";
+import { normalizeMobileCardId } from "@/lib/mobileYoklama";
 import PageHeader from "@/app/components/PageHeader";
 import { IconNfc } from "@/app/components/NavIcons";
 import KartKameraTarayici from "@/app/components/KartKameraTarayici";
@@ -175,23 +175,14 @@ export default function NfcYoklamaPage() {
   return (
     <div className="space-y-6 text-slate-900 pb-12 font-sans max-w-4xl mx-auto">
       <div className="flex flex-col items-center text-center pt-2">
-        <div className="relative w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden border-4 border-amber-400 shadow-2xl shadow-amber-500/20 mb-3">
-          {branding.logoSrc?.startsWith("data:") ? (
-            <img
-              src={branding.logoSrc}
-              alt={`${branding.salonAdi} Logo`}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <Image
-              src={branding.logoSrc || "/logo.png"}
-              alt={`${branding.salonAdi} Logo`}
-              fill
-              className="object-cover"
-              priority
-              unoptimized={Boolean(branding.logoBase64)}
-            />
-          )}
+        <div className="mb-3">
+          <BrandingLogo3D
+            logoSrc={branding.logoSrc || "/logo.png"}
+            alt={`${branding.salonAdi} Logo`}
+            size={128}
+            borderColor={branding.temaRengi || "#d97706"}
+            unoptimized={Boolean(branding.logoBase64)}
+          />
         </div>
         <p
           className="text-sm md:text-base font-black uppercase tracking-[0.2em]"

@@ -138,7 +138,32 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .eagle-logo-flip,
   .eagle-logo-pulse-ring,
-  .eagle-logo-pulse-ring-delayed {
+  .eagle-logo-pulse-ring-delayed,
+  .brand-logo-flip-slow,
+  .brand-logo-glow-ring {
     animation: none;
   }
+}
+
+/* Kurum logosu — navbar / NFC (geliştiriciden biraz daha yavaş) */
+.brand-logo-flip-slow {
+  animation: eagle-logo-y-spin 9s ease-in-out infinite;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+@keyframes brand-logo-glow {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(1.06);
+  }
+}
+
+.brand-logo-glow-ring {
+  animation: brand-logo-glow 3.2s ease-in-out infinite;
 }

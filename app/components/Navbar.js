@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useBranding } from "@/app/components/BrandingProvider";
+import BrandingLogo3D from "@/app/components/BrandingLogo3D";
 import { modulErisilebilir, varsayilanDashboardYolu } from "@/lib/ozellikler";
 import {
   IconNfc,
@@ -125,23 +125,14 @@ export default function Navbar() {
           href={anaSayfaYolu}
           className="p-6 border-b border-slate-800 flex items-center space-x-3 group block"
         >
-          <div className="relative w-11 h-11 rounded-full overflow-hidden border-2 border-amber-400 shadow-md group-hover:scale-105 transition-transform">
-            {branding.logoSrc?.startsWith("data:") ? (
-              <img
-                src={branding.logoSrc}
-                alt={`${branding.salonAdi} Logo`}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <Image
-                src={branding.logoSrc || "/logo.png"}
-                alt={`${branding.salonAdi} Logo`}
-                fill
-                className="object-cover"
-                priority
-                unoptimized={Boolean(branding.logoBase64)}
-              />
-            )}
+          <div className="group-hover:scale-105 transition-transform">
+            <BrandingLogo3D
+              logoSrc={branding.logoSrc || "/logo.png"}
+              alt={`${branding.salonAdi} Logo`}
+              size={56}
+              borderColor={branding.temaRengi || "#f59e0b"}
+              unoptimized={Boolean(branding.logoBase64)}
+            />
           </div>
           <div>
             <h2
