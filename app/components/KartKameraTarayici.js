@@ -10,6 +10,10 @@ const OCR_INTERVAL_IOS_MS = 1000;
 const MIN_KART_UZUNLUK = 5;
 const OCR_ONAY_SAYISI = 2;
 const OCR_GUVEN_ESIK = 68;
+/** Tek satır numara okuma — genişlik ve yükseklik oranları */
+const SATIR_OKUMA_GENISLIK = 0.88;
+const SATIR_OKUMA_YUKSEKLIK = 0.14;
+const SATIR_OKUMA_MIN_PX = 32;
 
 function ocrIcinHazirla(canvas) {
   const out = document.createElement("canvas");
@@ -74,18 +78,21 @@ async function kameraKaynagiSec(Html5Qrcode) {
   return { facingMode: "environment" };
 }
 
+function satirOkumaKutusu(viewfinderWidth, viewfinderHeight) {
+  const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+  const genislik = Math.floor(minEdge * SATIR_OKUMA_GENISLIK);
+  const yukseklik = Math.max(
+    SATIR_OKUMA_MIN_PX,
+    Math.floor(minEdge * SATIR_OKUMA_YUKSEKLIK),
+  );
+  return { width: genislik, height: yukseklik };
+}
+
 function taramaConfigOlustur() {
   const ios = isIosDevice();
   const config = {
     fps: ios ? 10 : 15,
-    qrbox: (viewfinderWidth, viewfinderHeight) => {
-      const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-      const genislik = Math.floor(minEdge * 0.82);
-      return {
-        width: genislik,
-        height: Math.floor(genislik * (ios ? 0.75 : 0.82)),
-      };
-    },
+    qrbox: satirOkumaKutusu,
     disableFlip: false,
   };
 
@@ -203,8 +210,8 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
       return canvas;
     }
 
-    const cropW = sw * 0.85;
-    const cropH = sh * 0.42;
+    const cropW = sw * SATIR_OKUMA_GENISLIK;
+    const cropH = Math.max(sh * SATIR_OKUMA_YUKSEKLIK, SATIR_OKUMA_MIN_PX);
     const sx = (sw - cropW) / 2;
     const sy = (sh - cropH) / 2;
     const maxW = 720;
@@ -461,7 +468,7 @@ export default function KartKameraTarayici({ acik, onKapat, onKodOkundu }) {
             <div className="space-y-2">
               <p className="text-center text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-2.5">
                 {mod === "numara"
-                  ? "Fiziksel karttaki numarayı kare ortasına hizalayın. Bilgisayar ekranından okuma genelde zordur."
+                  ? "Numarayı yatay satır hizasına getirin. Tek satır kare içinde dursun."
                   : "Kamera hazırlanıyor..."}
               </p>
               {adayNumara && (
